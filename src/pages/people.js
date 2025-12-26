@@ -5,8 +5,9 @@ import {
 } from '../services/api.js';
 import { toast } from '../ui/toast.js';
 import { openModal } from '../ui/modal.js';
-import { downloadText } from '../ui/download.js';
 
+import { fetchAllPaged } from '../services/api.js';
+import { exportToXlsx } from '../ui/exportExcel.js';
 
 export async function renderPeople() {
   return `
@@ -17,11 +18,9 @@ export async function renderPeople() {
           <div class="h1">Soci</div>
                
         </div>
-        <div class="panel-actions">
-         
-          <button class="btn primary" id="btnNew">+ Nuovo Socio</button>
-          <button class="btn ghost" id="btnReset">Reset</button>
-           <button class="btn ghost" id="btnExport">⬇ Export DB</button>
+        <div class="panel-actions">       
+          <button class="btn primary" id="btnNew">Nuovo Socio</button>       
+          <button class="btn ghost" id="btnExport">⬇ Export</button>
         </div>
       </div>
 
@@ -64,26 +63,24 @@ export async function bindPeopleEvents() {
   const sentinel = document.querySelector('#sentinel');
   const qInput = document.querySelector('#peopleQ');
   const btnNew = document.querySelector('#btnNew');
-  const btnReset = document.querySelector('#btnReset');
+
   const totAllEl = document.querySelector('#totAll');
   const totShownEl = document.querySelector('#totShown');
   const btnExport = document.querySelector('#btnExport');
 
+
+
   btnExport.addEventListener('click', async () => {
-    if (!confirm('Scaricare un backup completo del DB in JSON?')) return;
-    try {
-      setStatus('Preparo export…');
-      const dump = await exportAllData();
-      const json = JSON.stringify(dump, null, 2);
-      const ts = new Date().toISOString().slice(0, 19).replaceAll(':', '-');
-      downloadText(`topdance_backup_${ts}.json`, json, 'application/json;charset=utf-8');
-      toast('Export completato', 'ok');
-      setStatus('Pronto.');
-    } catch (e) {
-      toast(e?.message ?? 'Errore export', 'error');
-      setStatus('Errore export.');
-    }
+    const all = await fetchAllPaged(({ limit, offset }) =>
+      listPeoplePaged({ q: '', limit, offset, sortKey: 'display_name', sortAsc: true })
+    );
+
+    exportToXlsx({
+      filename: `topdance_people_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      sheets: [{ name: 'People', rows: all }]
+    });
   });
+
 
   const PAGE = 60;
 
@@ -101,13 +98,16 @@ export async function bindPeopleEvents() {
   function rowHtml(r) {
     return `
       <tr>
-        <td><b>${esc(r.display_name)}</b></td>
+        <td>
+        <b>${esc(r.display_name)}</b>
+         <div class="meta">${r.ruolo ? esc(r.ruolo) : ''}</div>
+        </td>
         <td>${r.nr_quota ?? '—'}</td>
         <td>${esc(r.corso ?? '—')}</td>
         <td>${esc(r.nr_tessera ?? '—')}</td>
         <td class="right">
-          <button class="btn tiny ghost" data-edit="${r.id}">Modifica</button>
-          <button class="btn tiny ghost danger" data-del="${r.id}">Elimina</button>
+          <button class="icon-btn sm" data-edit="${r.id}" title="Modifica">✎</button>
+          <button class="icon-btn sm danger" data-del="${r.id}" title="Elimina">🗑</button>
         </td>
       </tr>
     `;
@@ -126,12 +126,12 @@ export async function bindPeopleEvents() {
       const rows = await listPeoplePaged({ q, limit: PAGE, offset });
       if (rows.length === 0) {
         done = true;
-        setStatus(offset === 0 ? 'Nessun risultato.' : 'Fine lista.');      
+        setStatus(offset === 0 ? 'Nessun risultato.' : 'Fine lista.');
       } else {
         body.insertAdjacentHTML('beforeend', rows.map(rowHtml).join(''));
         offset += rows.length;
         setStatus(`Mostrati: ${offset}${rows.length < PAGE ? ' • Fine lista.' : ''}`);
-        if (rows.length < PAGE) done = true;     
+        if (rows.length < PAGE) done = true;
       }
     } catch (e) {
       toast(e?.message ?? 'Errore caricamento', 'error');
@@ -147,7 +147,7 @@ export async function bindPeopleEvents() {
     offset = 0;
     done = false;
     await loadNext();
-   
+
     const totalAll = await countPeople({ q: '' });  // totale soci
     setCounts({ totalAll, totalShown: totalAll });
 
@@ -182,12 +182,6 @@ export async function bindPeopleEvents() {
   }, 250);
 
   qInput.addEventListener('input', onSearch);
-
-  btnReset.addEventListener('click', async () => {
-    qInput.value = '';
-    q = '';
-    await resetAndLoad();
-  });
 
   btnNew.addEventListener('click', async () => {
     await openPersonEditor({ personId: null, onSaved: resetAndLoad });

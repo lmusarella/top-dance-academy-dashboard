@@ -124,3 +124,39 @@ export async function exportAllData() {
     certificates: certificates.data ?? [],
   };
 }
+
+export async function fetchAllPaged(fetchPageFn, { pageSize = 500 } = {}) {
+  let out = [];
+  let offset = 0;
+
+  while (true) {
+    const chunk = await fetchPageFn({ limit: pageSize, offset });
+    out = out.concat(chunk);
+    if (chunk.length < pageSize) break;
+    offset += chunk.length;
+  }
+  return out;
+}
+export async function listCertificatesPaged({
+  q = '',
+  limit = 70,
+  offset = 0,
+  sortKey = 'giorni_rimanenti',
+  sortAsc = true,
+  onlyExpired = false
+} = {}) {
+  let query = supabase
+    .from('v_cert_scadenze')
+    .select('*')
+    .order(sortKey, { ascending: sortAsc, nullsFirst: false })
+    .range(offset, offset + limit - 1);
+
+  const s = (q || '').trim();
+  if (s) query = query.ilike('display_name', `%${s}%`);
+
+  if (onlyExpired) query = query.lt('giorni_rimanenti', 0);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}

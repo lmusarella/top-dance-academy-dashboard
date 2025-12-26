@@ -6,7 +6,7 @@ export function renderLogin() {
   <div class="center">
     <div class="card glass">
       <div class="card-head">
-        <div class="badge">TDA</div>
+          <img class="brand-logo" src="./src/assets/tda_logo.jpg" alt="TopDance" />
         <div>
           <div class="h1">Accedi</div>
           <div class="h2">Solo utente autorizzato</div>

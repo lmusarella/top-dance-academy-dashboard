@@ -19,7 +19,7 @@ export async function renderDashboard() {
           <div class="h1">Dashboard</div>      
         </div>
         <div class="hero-actions">
-          <button class="btn primary" id="btnNew">+ Nuovo Socio</button>
+          <button class="btn primary" id="btnNew">Nuovo Socio</button>
           <button class="btn ghost" id="btnReload">Aggiorna</button>
         </div>
       </div>
@@ -44,8 +44,7 @@ export async function renderDashboard() {
             <tr>
               <th>Socio</th>
               <th>Certificato</th>
-              <th>Contatti</th>
-              <th class="right">Azioni</th>
+              <th>Contatti</th>            
             </tr>
           </thead>
           <tbody id="dashBody">
@@ -96,10 +95,8 @@ export async function bindDashboardEvents() {
       <tr>
         <td>
           <div class="dn">${escapeHtml(r.display_name || '—')}</div>
-          <div class="meta">
-            ${r.corso ? `<span>${escapeHtml(r.corso)}</span>` : ''}
-            ${r.nr_quota ? `<span>• Quota ${r.nr_quota}</span>` : ''}
-            ${r.ruolo ? `<span>• ${r.ruolo}</span>` : ''}
+          <div class="meta">         
+            ${r.ruolo ? `<span>${r.ruolo}</span>` : ''}
           </div>
         </td>
 
@@ -117,10 +114,7 @@ export async function bindDashboardEvents() {
           </div>
         </td>
 
-        <td class="right">
-          <button class="btn tiny ghost" data-edit="${r.person_id}">Modifica</button>
-          <button class="btn tiny ghost" data-copy="${escapeAttr(r.telefono || '')}" ${r.telefono ? '' : 'disabled'}>Copia tel</button>
-        </td>
+       
       </tr>
     `).join('');
 

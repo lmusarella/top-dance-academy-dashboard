@@ -9,7 +9,7 @@ export function renderShell(innerHtml) {
   <div class="app-shell">
     <aside class="sidebar glass ${logged ? '' : 'hidden'}" id="sidebar">
       <div class="brand">
-        <div class="brand-badge">TDA</div>
+         <img class="brand-logo" src="./src/assets/tda_logo.jpg" alt="TopDance" />
         <div>
           <div class="brand-title">TopDanceAcademy</div>
           <div class="brand-sub">Gestione Database</div>
@@ -19,6 +19,8 @@ export function renderShell(innerHtml) {
       <nav class="nav">
         <a class="nav-item" href="#/dashboard">🏠 Dashboard</a>
         <a class="nav-item" href="#/people">👥 Soci</a>
+        <a class="nav-item" href="#/certificates">📄 Certificati</a>
+      
       </nav>
 
       <div class="sidebar-foot">
