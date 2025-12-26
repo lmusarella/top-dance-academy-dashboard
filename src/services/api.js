@@ -7,9 +7,12 @@ export async function signIn(email, password) {
 
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  if (error) {
+    // Supabase a volte ritorna "Auth session missing" se la sessione è già sparita.
+    if ((error.message || '').toLowerCase().includes('auth session missing')) return;
+    throw error;
+  }
 }
-
 export async function getDashboardRows(limit = 500) {
   const { data, error } = await supabase
     .from('v_cert_scadenze')

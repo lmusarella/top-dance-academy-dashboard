@@ -59,6 +59,8 @@ export function bindShellEvents() {
         toast('Logout effettuato', 'ok');
       } catch (e) {
         toast(e?.message ?? 'Errore logout', 'error');
+      } finally {
+        location.hash = '#/login';
       }
     });
   }
