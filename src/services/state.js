@@ -12,7 +12,7 @@ export async function initAuthState() {
   supabase.auth.onAuthStateChange((_event, session) => {
     state.session = session;
     // se logout, torna a login
-    if (!session) location.hash = '#/login';
+    if (!session  && location.hash !== '#/login') location.hash = '#/login';
   });
 }
 
