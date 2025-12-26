@@ -9,7 +9,7 @@ export function renderShell(innerHtml) {
   <div class="app-shell">
     <aside class="sidebar glass ${logged ? '' : 'hidden'}" id="sidebar">
       <div class="brand">
-         <img class="brand-logo" src="./public/assets/tda_logo.jpg" alt="TopDance" />
+         <img class="brand-logo" src="${import.meta.env.BASE_URL}assets/tda_logo.jpg" alt="TopDance" />
         <div>
           <div class="brand-title">TopDanceAcademy</div>
           <div class="brand-sub">Gestione Database</div>
