@@ -195,7 +195,7 @@ export async function bindCoursesEvents() {
           <div class="search">
             <input id="mpQ" placeholder="Cerca per nome o quota…" />
           </div>
-          <button class="btn primary" id="mpAdd" disabled>+ Aggiungi</button>
+          <button class="btn primary" id="mpAdd" disabled>Aggiungi</button>
         </div>
 
         <div id="mpList" class="mp-list">
