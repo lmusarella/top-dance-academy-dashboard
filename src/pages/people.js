@@ -521,7 +521,7 @@ export async function openPersonEditor({ personId, onSaved }) {
     </label>
 
     <label class="field">
-      <span>Note</span>
+      <span>Note iscrizione</span>
       <input name="note" placeholder="..."/>
     </label>
 
@@ -564,6 +564,12 @@ export async function openPersonEditor({ personId, onSaved }) {
     </label>
 
         <div class="section"><h3>Corsi</h3></div>
+
+
+    <label class="field">
+      <span>Note corso</span>
+      <input name="corso" placeholder="..."/>
+    </label>
 
     <div class="field span2">
      
@@ -636,7 +642,7 @@ export async function openPersonEditor({ personId, onSaved }) {
         display_name: full.person.display_name ?? '',
         nr_quota: full.person.nr_quota ?? '',
         ruolo: full.person.ruolo ?? 'ALLIEVO',
-
+        corso: full.person.corso ?? '',
         telefono: full.contact?.telefono ?? '',
         email: full.contact?.email ?? '',
         codice_fiscale: full.contact?.codice_fiscale ?? '',
