@@ -26,10 +26,19 @@ export async function renderDashboard() {
       </div>
 
       <div class="kpis" id="kpis">
-        <div class="kpi"><div class="k">Scaduti</div><div class="v danger">—</div></div>
-        <div class="kpi"><div class="k">Entro 7 gg</div><div class="v warn">—</div></div>
-        <div class="kpi"><div class="k">Entro 30 gg</div><div class="v info">—</div></div>
+        <button class="kpi" data-kpi="EXPIRED" type="button">
+          <div class="k">Scaduti</div><div class="v danger">—</div>
+        </button>
+
+        <button class="kpi" data-kpi="DUE7" type="button">
+          <div class="k">Entro 7 gg</div><div class="v warn">—</div>
+        </button>
+
+        <button class="kpi" data-kpi="DUE30" type="button">
+          <div class="k">Entro 30 gg</div><div class="v info">—</div>
+        </button>
       </div>
+
     </section>
 
     <section class="panel glass">
@@ -68,68 +77,94 @@ export async function bindDashboardEvents() {
   const q = document.querySelector('#q');
   const body = document.querySelector('#dashBody');
   const kpis = document.querySelector('#kpis');
-const btnExport = document.querySelector('#btnExport');
-const totAllEl = document.querySelector('#totAll');
-const totShownEl = document.querySelector('#totShown');
-
+  const btnExport = document.querySelector('#btnExport');
+  const totAllEl = document.querySelector('#totAll');
+  const totShownEl = document.querySelector('#totShown');
+  let kpiFilter = '';
   let rows = [];
-let shown = [];
-function setCounts(totalAll, totalShown) {
-  if (totAllEl) totAllEl.textContent = String(totalAll ?? 0);
-  if (totShownEl) totShownEl.textContent = String(totalShown ?? 0);
-}
+  let shown = [];
+  function setCounts(totalAll, totalShown) {
+    if (totAllEl) totAllEl.textContent = String(totalAll ?? 0);
+    if (totShownEl) totShownEl.textContent = String(totalShown ?? 0);
+  }
+  function matchKpi(r) {
+    const d = r?.giorni_rimanenti;
+    if (d == null) return false; // in dashboard hai solo scadenza non null, ma safe
+    if (kpiFilter === 'EXPIRED') return d < 0;
+    if (kpiFilter === 'DUE7') return d >= 0 && d <= 7;
+    if (kpiFilter === 'DUE30') return d >= 0 && d <= 30;
+    return true; // nessun filtro KPI
+  }
+
   async function load() {
     body.innerHTML = `<tr><td colspan="4" class="muted">Carico dati…</td></tr>`;
     try {
       rows = await getDashboardRows(600);
       computeKpi(rows);
-      renderRows(rows);
+      applyFilter();
     } catch (e) {
       toast(e?.message ?? 'Errore lettura dati', 'error');
       body.innerHTML = `<tr><td colspan="4" class="muted">Errore</td></tr>`;
     }
   }
-function corsiToString(corsi) {
-  const arr = Array.isArray(corsi) ? corsi : [];
-  return arr.map(x => x?.nome).filter(Boolean).join(', ');
-}
+  function corsiToString(corsi) {
+    const arr = Array.isArray(corsi) ? corsi : [];
+    return arr.map(x => x?.nome).filter(Boolean).join(', ');
+  }
 
-function pick(obj, keys) {
-  const out = {};
-  for (const k of keys) out[k] = obj?.[k];
-  return out;
-}
-btnExport?.addEventListener('click', async () => {
-   // quali colonne vuoi esportare (ordine incluso)
-  const EXPORT_COLS = [
-    'id',
-    'display_name',
-    'nr_quota',
-    'nr_tessera',
-    'ruolo',
-    'giorni_rimanenti',
-    'scadenza_fmt',
-    'telefono',
-    'email',
-    'consenso_whatsapp',
-    'corsi',
-    'corso', // la mettiamo noi come stringa
-  ];
+  function pick(obj, keys) {
+    const out = {};
+    for (const k of keys) out[k] = obj?.[k];
+    return out;
+  }
+  btnExport?.addEventListener('click', async () => {
+    // quali colonne vuoi esportare (ordine incluso)
+    const EXPORT_COLS = [
+      'person_id',
+      'display_name',
+      'nr_quota',
+      'nr_tessera',
+      'ruolo',
+      'giorni_rimanenti',
+      'scadenza_fmt',
+      'telefono',
+      'email',
+      'consenso_whatsapp',
+      'corsi',
+      'corso', // la mettiamo noi come stringa
+    ];
 
- const toExport = (shown ?? []).map(r => {
-    const flat = {
-      ...r,
-      corsi: corsiToString(r.corsi), // <-- QUI il fix
-    };
-    return pick(flat, EXPORT_COLS);
+    const toExport = (shown ?? []).map(r => {
+      const flat = {
+        ...r,
+        corsi: corsiToString(r.corsi), // <-- QUI il fix
+      };
+      return pick(flat, EXPORT_COLS);
+    });
+
+    exportToXlsx({
+      filename: `topdance_controllo_certificati_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      sheets: [{ name: 'Dashboard', rows: toExport }]
+    });
   });
+kpis?.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-kpi]');
+  if (!btn) return;
 
-  exportToXlsx({
-    filename: `topdance_controllo_certificati_${new Date().toISOString().slice(0, 10)}.xlsx`,
-    sheets: [{ name: 'Dashboard', rows: toExport }]
-  });
+  const key = btn.getAttribute('data-kpi') || '';
+
+  // toggle: clic su stesso = reset
+  kpiFilter = (kpiFilter === key) ? '' : key;
+
+  // UI stato active
+  kpis.querySelectorAll('.kpi').forEach(el => el.classList.remove('active'));
+  if (kpiFilter) {
+    const activeEl = kpis.querySelector(`.kpi[data-kpi="${kpiFilter}"]`);
+    activeEl?.classList.add('active');
+  }
+
+  applyFilter();
 });
-
   function computeKpi(list) {
     const days = list.map(x => x.giorni_rimanenti).filter(x => x != null);
     const expired = days.filter(d => d < 0).length;
@@ -144,7 +179,7 @@ btnExport?.addEventListener('click', async () => {
 
   function renderRows(list) {
     shown = Array.isArray(list) ? list : [];
-setCounts(rows.length, shown.length);
+    setCounts(rows.length, shown.length);
     const html = list.map(r => `
       <tr>
         <td>
@@ -191,17 +226,24 @@ setCounts(rows.length, shown.length);
    
   `;
   }
-  function applyFilter() {
-    const s = (q.value || '').trim().toLowerCase();
-    if (!s) return renderRows(rows);
+ function applyFilter() {
+  const s = (q?.value || '').trim().toLowerCase();
 
-    const filtered = rows.filter(r => {   
+  let filtered = rows;
+
+  // 1) filtro KPI (sempre, anche se input vuoto)
+  filtered = filtered.filter(matchKpi);
+
+  // 2) filtro testo (solo se c'è testo)
+  if (s) {
+    filtered = filtered.filter(r => {
       const hay = `${(r.display_name ?? '').replace(/\s+/g, ' ')}${r.nr_tessera ?? ''}${r.nr_quota ?? ''}`.toLowerCase();
       return hay.includes(s);
     });
-
-    renderRows(filtered);
   }
+
+  renderRows(filtered);
+}
 
   body.addEventListener('click', async (e) => {
     const btn = e.target.closest('button');
@@ -225,10 +267,12 @@ setCounts(rows.length, shown.length);
   });
 
 
-btnReload?.addEventListener('click', async () => {
-  if (q) q.value = '';
-  await load();       // load() renderizza già e quindi shown=rows
-});
+  btnReload?.addEventListener('click', async () => {
+    if (q) q.value = '';
+     kpiFilter = '';
+  kpis?.querySelectorAll('.kpi').forEach(el => el.classList.remove('active'));
+    await load();       // load() renderizza già e quindi shown=rows
+  });
   q?.addEventListener('input', applyFilter);
 
   await load();

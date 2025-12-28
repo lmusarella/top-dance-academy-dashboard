@@ -748,3 +748,181 @@ select option{
   justify-content:flex-end;
   gap:10px;
 }
+/* SUMMARY: una riga pulita */
+.acc-sum{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+/* sinistra: titolo + chip tipo */
+.acc-left{
+  min-width: 0; /* fondamentale per ellipsis */
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.acc-title{
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 52vw; /* evita che invada la destra */
+}
+
+/* chip + eventuali meta */
+.acc-sub{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* destra: istruttore + count, sempre in linea */
+.acc-right{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* istruttore “a destra” */
+.acc-teachers{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  max-width: 260px;
+}
+
+.acc-teachers-name{
+  overflow:hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* count allineato, leggermente più stretto */
+.acc-count{
+  padding-left: 10px;
+  border-left: 1px solid rgba(255,255,255,0.12);
+}
+
+/* Mobile: vai a capo ma ordinato */
+@media (max-width: 640px){
+  .acc-sum{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .acc-right{
+    width: 100%;
+    justify-content: space-between;
+  }
+  .acc-title{
+    max-width: 100%;
+  }
+  .acc-teachers{
+    max-width: 60%;
+  }
+}
+.kpi{
+  all: unset;
+  display:block;
+  cursor:pointer;
+}
+.kpi:focus{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(120,160,255,0.18);
+  border-radius: 14px;
+}
+.kpi.active{
+  outline: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+}
+/* =========================
+   KPI cards (clickable)
+   ========================= */
+
+.kpis{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+/* base card */
+.kpi{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  padding: 14px 16px;
+  border-radius: 16px;
+
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.14);
+
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 120ms ease;
+}
+
+/* hover */
+.kpi:hover{
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
+}
+
+/* focus accessibile */
+.kpi:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(120,160,255,0.25);
+}
+
+/* stato ACTIVE */
+.kpi.active{
+  background: rgba(120,160,255,0.14);
+  border-color: rgba(120,160,255,0.45);
+  box-shadow:
+    0 8px 24px rgba(0,0,0,0.25),
+    inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+
+/* testo KPI */
+.kpi .k{
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.kpi .v{
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* colori semantici */
+.kpi .v.danger{ color: #ff6b6b; }
+.kpi .v.warn{ color: #ffd166; }
+.kpi .v.info{ color: #7aa2ff; }
+
+/* micro-indicatore active (sottile ma figo) */
+.kpi.active::after{
+  content: '';
+  position: absolute;
+  inset: auto 16px 8px 16px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.55),
+    transparent
+  );
+}

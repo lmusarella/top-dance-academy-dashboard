@@ -65,47 +65,39 @@ export async function bindCoursesEvents() {
       .replaceAll("'", '&#039;');
   }
 
-  function typeChip(tipo) {
-    const cls =
-      tipo === 'BALLO' ? 'info' :
-        tipo === 'FITNESS' ? 'ok' :
-          tipo === 'ARTI_MARZIALI' ? 'warn' : '';
+ function courseItem(c) {
+  const teachersTxt = c.istruttori ? esc(c.istruttori) : '—';
+  const desc = c.descrizione ? `<div class="meta">${esc(c.descrizione)}</div>` : '';
+  const countTxt = `${c.participants_count ?? 0} partecipanti`;
 
-    return `<span class="chip ${cls}">${esc(tipo)}</span>`;
-  }
-
-  function courseItem(c) {
-    const teachers = c.istruttori ? `<div class="meta">👤 ${esc(c.istruttori)}</div>` : '';
-    const desc = c.descrizione ? `<div class="meta">${esc(c.descrizione)}</div>` : '';
-    const countTxt = `${c.participants_count ?? 0} partecipanti`;
-
-    return `
-      <details class="acc-item" data-id="${c.id}">
-        <summary class="acc-sum">
-          <div class="acc-left">
-            <div class="acc-title">${esc(c.nome_corso)}</div>
-            <div class="acc-sub">
-              ${typeChip(c.tipo_corso)}
-              ${teachers}
-            </div>
-          </div>
-          <div class="acc-right">
-            <span class="muted" data-count>${countTxt}</span>
-          </div>
-        </summary>
-
-        <div class="acc-body">
-          ${desc}
-          <div class="acc-actions">
-            <button class="btn tiny primary" data-add>Aggiungi membri</button>
-          </div>
-          <div class="participants" data-participants>
-            <div class="muted">Caricamento…</div>
-          </div>
+  return `
+    <details class="acc-item" data-id="${c.id}">
+      <summary class="acc-sum">
+        <div class="acc-left">
+          <div class="acc-title">${esc(c.nome_corso)}</div>       
         </div>
-      </details>
-    `;
-  }
+
+        <div class="acc-right">
+          <div class="acc-teachers">
+            <span class="muted">👤</span>
+            <span class="acc-teachers-name">${teachersTxt}</span>
+          </div>
+          <div class="acc-count muted" data-count>${countTxt}</div>
+        </div>
+      </summary>
+
+      <div class="acc-body">
+        ${desc}
+        <div class="acc-actions">
+          <button class="btn tiny primary" data-add>Aggiungi membri</button>
+        </div>
+        <div class="participants" data-participants>
+          <div class="muted">Caricamento…</div>
+        </div>
+      </div>
+    </details>
+  `;
+}
 
   function applyFilterRender() {
     const s = (q || '').trim().toLowerCase();
