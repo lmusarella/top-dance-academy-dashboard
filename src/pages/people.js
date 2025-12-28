@@ -254,7 +254,7 @@ export async function bindPeopleEvents() {
 
     // quali colonne vuoi esportare (ordine incluso)
     const EXPORT_COLS = [
-      'person_id',
+      'id',
       'display_name',
       'nr_quota',
       'nr_tessera',
