@@ -1,14 +1,21 @@
 import {
   getPersonFull,
   upsertPerson, upsertContact, upsertMembership, upsertCertificate,
-  deletePerson, listPeoplePaged, countPeople, exportAllData
+  deletePerson, listPeoplePaged, countPeople
 } from '../services/api.js';
 import { toast } from '../ui/toast.js';
 import { openModal } from '../ui/modal.js';
 
 import { fetchAllPaged } from '../services/api.js';
 import { exportToXlsx } from '../ui/exportExcel.js';
-
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
 export async function renderPeople() {
   return `
   <div class="stack">
@@ -26,7 +33,7 @@ export async function renderPeople() {
 
       <div class="panel-top">
         <div class="search">
-          <input id="peopleQ" placeholder="Cerca per nome o numero tessera…" />
+          <input id="peopleQ" placeholder="Cerca per nome, numero quota o numero tessera…" />
         </div>
          <div class="h2">
           Totale soci: <b id="totAll">—</b> • Risultati: <b id="totShown">—</b>
@@ -37,10 +44,10 @@ export async function renderPeople() {
         <table class="table">
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>Quota</th>
-              <th>Corso</th>
-              <th>Tessera</th>
+              <th>Socio</th>
+              <th>Certificato</th>
+              <th>Contatti</th>
+              <th>Corsi</th>          
               <th class="right">Azioni</th>
             </tr>
           </thead>
@@ -94,21 +101,50 @@ export async function bindPeopleEvents() {
     if (totalAll !== null) totAllEl.textContent = String(totalAll);
     if (totalShown !== null) totShownEl.textContent = String(totalShown);
   }
-
+function chipsHtml(corsiJson) {
+  const arr = Array.isArray(corsiJson) ? corsiJson : [];
+  if (!arr.length) return `<span class="muted">—</span>`;
+  return `
+    
+      ${arr.map(c => `<span class="meta">${escapeHtml(c.nome)}</span>`).join('')}
+   
+  `;
+}
   function rowHtml(r) {
+  
     return `
       <tr>
         <td>
         <b>${esc(r.display_name)}</b>
-         <div class="meta">${r.ruolo ? esc(r.ruolo) : ''}</div>
+         <div class="meta">${r.ruolo ? esc(r.ruolo) : ''} • Quota: ${r.nr_quota ?? '—'} • Tessera: ${esc(r.nr_tessera ?? '—')}</div>
         </td>
-        <td>${r.nr_quota ?? '—'}</td>
-        <td>${esc(r.corso ?? '—')}</td>
-        <td>${esc(r.nr_tessera ?? '—')}</td>
-        <td class="right">
+        <td>
+          <div class="meta">
+            <span>${r.giorni_rimanenti == null ? '❌ Assente': r.giorni_rimanenti <= 0 ? '🔴 Scaduto': '🟢 Ok'}</span>
+          </div>
+          <div class="meta">
+             <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
+          </div>
+        </td>
+        <td><div class="meta">
+            ${r.telefono ? `<span>📞 ${escapeHtml(r.telefono)}</span>` : `<span class="muted">📞 —</span>`}
+            </div>
+          <div class="meta">
+             ${r.email ? `<span>✉️ ${escapeHtml(r.email)}</span>` : `<span class="muted">✉️ —</span>`}
+          </div>
+            <div class="meta">
+             ${r.consenso_whatsapp ? `<span>✅ Consenso Whatsapp` : `<span>❌ Consenso Whatsapp`}
+          </div>
+          </td>
+
+        <td>${chipsHtml(r.corsi)}</td>
+       
+        <td class="right actions-cell">
+        <div class="actions">
           <button class="icon-btn sm" data-edit="${r.id}" title="Modifica">✎</button>
           <button class="icon-btn sm danger" data-del="${r.id}" title="Elimina">🗑</button>
-        </td>
+        </div>
+      </td>
       </tr>
     `;
   }

@@ -3,11 +3,11 @@ import { toast } from '../ui/toast.js';
 import { openPersonEditor } from './people.js';
 
 function chip(days) {
-  if (days == null) return `<span class="chip">—</span>`;
-  if (days < 0) return `<span class="chip danger">SCADUTO (${days})</span>`;
-  if (days <= 7) return `<span class="chip warn">${days} gg</span>`;
-  if (days <= 30) return `<span class="chip info">${days} gg</span>`;
-  return `<span class="chip ok">OK</span>`;
+  if (days == null) return `<span >—</span>`;
+  if (days < 0) return `<span >⛔ Scaduto (${days})</span>`;
+  if (days <= 7) return `<span >📅 Scade tra ${days} gg</span>`;
+  if (days <= 30) return `<span >📅 Scade tra ${days} gg</span>`;
+  return `<span>✅ OK</span>`;
 }
 
 export async function renderDashboard() {
@@ -18,9 +18,8 @@ export async function renderDashboard() {
         <div>
           <div class="h1">Dashboard</div>      
         </div>
-        <div class="hero-actions">
-          <button class="btn primary" id="btnNew">Nuovo Socio</button>
-          <button class="btn ghost" id="btnReload">Aggiorna</button>
+        <div class="hero-actions">        
+          <button class="btn primary" id="btnReload">Aggiorna</button>
         </div>
       </div>
 
@@ -34,7 +33,7 @@ export async function renderDashboard() {
     <section class="panel glass">
       <div class="panel-top">
         <div class="search">
-          <input id="q" placeholder="Cerca (nome, corso, quota, tel, email)" />
+          <input id="q" placeholder="Cerca per nome, numero quota o numero tessera…" />
         </div>
       </div>
 
@@ -58,7 +57,7 @@ export async function renderDashboard() {
 }
 
 export async function bindDashboardEvents() {
-  const btnNew = document.querySelector('#btnNew');
+
   const btnReload = document.querySelector('#btnReload');
   const q = document.querySelector('#q');
   const body = document.querySelector('#dashBody');
@@ -94,25 +93,33 @@ export async function bindDashboardEvents() {
     const html = list.map(r => `
       <tr>
         <td>
-          <div class="dn">${escapeHtml(r.display_name || '—')}</div>
-          <div class="meta">         
-            ${r.ruolo ? `<span>${r.ruolo}</span>` : ''}
-          </div>
+        <b>${escapeHtml(r.display_name)}</b>
+         <div class="meta">${r.ruolo ? escapeHtml(r.ruolo) : ''} • Quota: ${r.nr_quota ?? '—'} • Tessera: ${escapeHtml(r.nr_tessera ?? '—')}</div>
         </td>
 
         <td>
-          <div class="row-inline">
-            <span>${r.scadenza ?? '—'}</span>
+        <div class="meta">
             ${chip(r.giorni_rimanenti)}
           </div>
-        </td>
-
-        <td>
           <div class="meta">
-            ${r.telefono ? `<span>📞 ${escapeHtml(r.telefono)}</span>` : `<span class="muted">📞 —</span>`}
-            ${r.email ? `<span>✉️ ${escapeHtml(r.email)}</span>` : `<span class="muted">✉️ —</span>`}
+            <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
           </div>
+          
         </td>
+ 
+        
+      
+        <td><div class="meta">
+            ${r.telefono ? `<span>📞 ${escapeHtml(r.telefono)}</span>` : `<span class="muted">📞 —</span>`}
+            </div>
+          <div class="meta">
+             ${r.email ? `<span>✉️ ${escapeHtml(r.email)}</span>` : `<span class="muted">✉️ —</span>`}
+          </div>
+            <div class="meta">
+             ${r.consenso_whatsapp ? `<span>✅ Consenso Whatsapp` : `<span>❌ Consenso Whatsapp`}
+          </div>
+          </td>
+
 
        
       </tr>
@@ -125,10 +132,11 @@ export async function bindDashboardEvents() {
     const s = (q.value || '').trim().toLowerCase();
     if (!s) return renderRows(rows);
 
-    const filtered = rows.filter(r => {
-      const hay = `${r.display_name ?? ''} ${r.corso ?? ''} ${r.nr_quota ?? ''} ${r.telefono ?? ''} ${r.email ?? ''}`.toLowerCase();
+    const filtered = rows.filter(r => {   
+      const hay = `${(r.display_name ?? '').replace(/\s+/g, ' ')}${r.nr_tessera ?? ''}${r.nr_quota ?? ''}`.toLowerCase();
       return hay.includes(s);
     });
+
     renderRows(filtered);
   }
 
@@ -153,9 +161,6 @@ export async function bindDashboardEvents() {
     }
   });
 
-  btnNew?.addEventListener('click', async () => {
-    await openPersonEditor({ personId: null, onSaved: load });
-  });
 
   btnReload?.addEventListener('click', load);
   q?.addEventListener('input', applyFilter);
@@ -171,6 +176,4 @@ function escapeHtml(s) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }
-function escapeAttr(s) {
-  return escapeHtml(s).replaceAll('\n', ' ');
-}
+

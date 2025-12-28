@@ -77,55 +77,69 @@ export async function deletePerson(personId) {
   const { error } = await supabase.from('people').delete().eq('id', personId);
   if (error) throw error;
 }
+
 export async function listPeoplePaged({ q = '', limit = 50, offset = 0 } = {}) {
-  const query = supabase
+  let query = supabase
     .from('v_people_search')
     .select('*')
     .order('display_name', { ascending: true })
     .range(offset, offset + limit - 1);
 
-  const s = (q || '').trim();
-  if (s) {
-    // OR su nome + tessera
-    query.or(`display_name.ilike.%${s}%,nr_tessera.ilike.%${s}%`);
+  const s = String(q ?? '').trim();
+  if (!s) {
+    const { data, error } = await query;
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  const isNumeric = /^\d+$/.test(s);
+
+  // normalizza spazi input (almeno lato FE)
+  const sNorm = s.replace(/\s+/g, ' ');
+
+  if (isNumeric) {
+    query = query.or(
+      `nr_quota.eq.${Number(sNorm)},nr_tessera.ilike.%${sNorm}%,display_name_norm.ilike.%${sNorm}%`
+    );
+  } else {
+    query = query.or(
+      `display_name_norm.ilike.%${sNorm}%,nr_tessera.ilike.%${sNorm}%`
+    );
   }
 
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
+
 export async function countPeople({ q = '' } = {}) {
-  const query = supabase
+  let query = supabase
     .from('v_people_search')
     .select('id', { count: 'exact', head: true });
 
-  const s = (q || '').trim();
-  if (s) query.or(`display_name.ilike.%${s}%,nr_tessera.ilike.%${s}%`);
+  const s = String(q ?? '').trim();
+  if (!s) {
+    const { count, error } = await query;
+    if (error) throw error;
+    return count ?? 0;
+  }
+
+  const isNumeric = /^\d+$/.test(s);
+  const sNorm = s.replace(/\s+/g, ' ');
+
+  if (isNumeric) {
+    query = query.or(
+      `nr_quota.eq.${Number(sNorm)},nr_tessera.ilike.%${sNorm}%,display_name_norm.ilike.%${sNorm}%`
+    );
+  } else {
+    query = query.or(
+      `display_name_norm.ilike.%${sNorm}%,nr_tessera.ilike.%${sNorm}%`
+    );
+  }
 
   const { count, error } = await query;
   if (error) throw error;
   return count ?? 0;
-}
-export async function exportAllData() {
-  const [people, contacts, memberships, certificates] = await Promise.all([
-    supabase.from('people').select('*').order('display_name', { ascending: true }),
-    supabase.from('contacts').select('*'),
-    supabase.from('memberships').select('*'),
-    supabase.from('certificates').select('*'),
-  ]);
-
-  if (people.error) throw people.error;
-  if (contacts.error) throw contacts.error;
-  if (memberships.error) throw memberships.error;
-  if (certificates.error) throw certificates.error;
-
-  return {
-    exported_at: new Date().toISOString(),
-    people: people.data ?? [],
-    contacts: contacts.data ?? [],
-    memberships: memberships.data ?? [],
-    certificates: certificates.data ?? [],
-  };
 }
 
 export async function fetchAllPaged(fetchPageFn, { pageSize = 500 } = {}) {
@@ -162,4 +176,84 @@ export async function listCertificatesPaged({
   const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
+}
+
+export async function listCoursesWithCounts() {
+  const { data, error } = await supabase
+    .from('v_courses_with_counts')
+    .select('id, nome_corso, tipo_corso, descrizione, istruttori, is_active, participants_count')
+    .order('tipo_corso', { ascending: true })
+    .order('nome_corso', { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listCourseParticipants(courseId) {
+  // Richiede FK person_courses.person_id -> people.id
+  const { data, error } = await supabase
+    .from('person_courses')
+    .select('person_id, people(id, display_name, nr_quota, ruolo)')
+    .eq('course_id', courseId);
+
+  if (error) throw error;
+
+  return (data ?? [])
+    .map(r => r.people)
+    .filter(Boolean)
+    .sort((a, b) =>
+      (a.display_name || '').localeCompare(b.display_name || '', 'it', { sensitivity: 'base' })
+    );
+}
+export async function refreshCourseCount(courseId, countEl) {
+  const { data, error } = await supabase
+    .from('v_courses_with_counts')
+    .select('participants_count')
+    .eq('id', courseId)
+    .single();
+
+  if (!error && data && countEl) {
+    countEl.textContent = `${data.participants_count ?? 0} partecipanti`;
+  }
+}
+
+export async function removePersonFromCourse(courseId, personId) {
+  const { error } = await supabase
+    .from('person_courses')
+    .delete()
+    .eq('course_id', courseId)
+    .eq('person_id', personId);
+
+  if (error) throw error;
+}
+
+
+export async function searchPeople(qText, limit = 60) {
+  const s = (qText || '').trim();
+  let query = supabase
+    .from('people')
+    .select('id, display_name, nr_quota, ruolo')
+    .order('display_name', { ascending: true })
+    .limit(limit);
+
+  if (s) {
+    // ricerca nome; quota la gestiamo anche come testo (client-side se serve)
+    query = query.ilike('display_name', `%${s}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  // Se l’utente scrive numeri, prova a filtrare anche per nr_quota client-side
+  if (s && /^\d+$/.test(s)) {
+    return (data ?? []).filter(p => String(p.nr_quota ?? '').includes(s));
+  }
+  return data ?? [];
+}
+
+export async function addPeopleToCourse(courseId, personIds) {
+  if (!personIds?.length) return;
+  const rows = personIds.map(pid => ({ course_id: courseId, person_id: pid }));
+  const { error } = await supabase.from('person_courses').insert(rows, { returning: 'minimal' });
+  if (error) throw error;
 }

@@ -18,9 +18,8 @@ export function renderShell(innerHtml) {
 
       <nav class="nav">
         <a class="nav-item" href="#/dashboard">🏠 Dashboard</a>
-        <a class="nav-item" href="#/people">👥 Soci</a>
-        <a class="nav-item" href="#/certificates">📄 Certificati</a>
-      
+        <a class="nav-item" href="#/people">👥 Soci</a>     
+        <a class="nav-item" href="#/courses">🎓 Corsi</a>
       </nav>
 
       <div class="sidebar-foot">

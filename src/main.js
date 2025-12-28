@@ -5,8 +5,7 @@ import { initAuthState, isLoggedIn } from './services/state.js';
 import { renderLogin, bindLoginEvents } from './pages/login.js';
 import { renderDashboard, bindDashboardEvents } from './pages/dashboard.js';
 import { renderPeople, bindPeopleEvents } from './pages/people.js';
-import { renderCertificates, bindCertificatesEvents } from './pages/certificates.js';
-
+import { renderCourses, bindCoursesEvents } from './pages/courses.js';
 
 const app = document.querySelector('#app');
 
@@ -14,7 +13,8 @@ const routes = {
   '#/login': { render: renderLogin, bind: bindLoginEvents, auth: false },
   '#/dashboard': { render: renderDashboard, bind: bindDashboardEvents, auth: true },
   '#/people': { render: renderPeople, bind: bindPeopleEvents, auth: true },
-  '#/certificates': { render: renderCertificates, bind: bindCertificatesEvents, auth: true },
+ 
+  '#/courses': { render: renderCourses, bind: bindCoursesEvents, auth: true }
 };
 
 function getRoute() {
