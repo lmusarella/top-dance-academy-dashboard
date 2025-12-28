@@ -120,7 +120,7 @@ export async function bindCoursesEvents() {
         <thead>
           <tr>
             <th>Nome</th>
-             <th>Note altri corsi</th>
+             <th>Note extra</th>
             <th class="right">Azioni</th>
           </tr>
         </thead>
