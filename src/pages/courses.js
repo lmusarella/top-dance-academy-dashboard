@@ -120,7 +120,7 @@ export async function bindCoursesEvents() {
         <thead>
           <tr>
             <th>Nome</th>
-            
+             <th>Note altri corsi</th>
             <th class="right">Azioni</th>
           </tr>
         </thead>
@@ -131,7 +131,10 @@ export async function bindCoursesEvents() {
                 <b>${esc(p.display_name)}</b>
                 <div class="meta">${p.ruolo ? esc(p.ruolo) : ''} • Quota: ${p.nr_quota ?? '—'}</div>
               </td>
-             
+               <td>
+               
+                <div class="meta">${p.corso ? esc(p.corso) : ''}</div>
+              </td>
               <td class="right">
                 <button class="icon-btn sm danger" data-remove="${p.id}" data-course="${courseId}" title="Rimuovi dal corso">🗑</button>
               </td>

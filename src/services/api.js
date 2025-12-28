@@ -226,7 +226,7 @@ export async function listCourseParticipants(courseId) {
   // Richiede FK person_courses.person_id -> people.id
   const { data, error } = await supabase
     .from('person_courses')
-    .select('person_id, people(id, display_name, nr_quota, ruolo)')
+    .select('person_id, people(id, display_name, nr_quota, ruolo, corso)')
     .eq('course_id', courseId);
 
   if (error) throw error;
