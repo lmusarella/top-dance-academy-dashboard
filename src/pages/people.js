@@ -710,6 +710,7 @@ export async function openPersonEditor({ personId, onSaved }) {
       ...(isEdit ? { id: personId } : {}),
       display_name: String(fd.get('display_name') || '').trim(),
       nr_quota: numOrNull(fd.get('nr_quota')),
+      corso: String(fd.get('corso') || ''),
       ruolo: String(fd.get('ruolo') || 'ALLIEVO'),
     };
 
