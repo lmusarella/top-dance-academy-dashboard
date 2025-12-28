@@ -4,9 +4,9 @@ import { openPersonEditor } from './people.js';
 
 function chip(days) {
   if (days == null) return `<span >—</span>`;
-  if (days < 0) return `<span >⛔ Scaduto (${days})</span>`;
-  if (days <= 7) return `<span >📅 Scade tra ${days} gg</span>`;
-  if (days <= 30) return `<span >📅 Scade tra ${days} gg</span>`;
+  if (days < 0) return `<span >🔴 Scaduto (${days})</span>`;
+  if (days <= 7) return `<span >🟡 Scade tra ${days} gg</span>`;
+  if (days <= 30) return `<span >🔵 Scade tra ${days} gg</span>`;
   return `<span>✅ OK</span>`;
 }
 
