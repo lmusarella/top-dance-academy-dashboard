@@ -98,7 +98,7 @@ export async function bindCoursesEvents() {
         <div class="acc-body">
           ${desc}
           <div class="acc-actions">
-            <button class="btn tiny ghost" data-add>+ Aggiungi membri</button>
+            <button class="btn tiny primary" data-add>Aggiungi membri</button>
           </div>
           <div class="participants" data-participants>
             <div class="muted">Caricamento…</div>
@@ -129,17 +129,18 @@ export async function bindCoursesEvents() {
         <thead>
           <tr>
             <th>Nome</th>
-            <th>Quota</th>
-            <th>Ruolo</th>
+            
             <th class="right">Azioni</th>
           </tr>
         </thead>
         <tbody>
           ${people.map(p => `
             <tr>
-              <td><b>${esc(p.display_name)}</b></td>
-              <td>${p.nr_quota ?? '—'}</td>
-              <td>${esc(p.ruolo ?? '—')}</td>
+              <td>
+                <b>${esc(p.display_name)}</b>
+                <div class="meta">${p.ruolo ? esc(p.ruolo) : ''} • Quota: ${p.nr_quota ?? '—'}</div>
+              </td>
+             
               <td class="right">
                 <button class="icon-btn sm danger" data-remove="${p.id}" data-course="${courseId}" title="Rimuovi dal corso">🗑</button>
               </td>
