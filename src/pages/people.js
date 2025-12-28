@@ -316,7 +316,7 @@ export async function bindPeopleEvents() {
              ${r.email ? `<span>✉️ ${escapeHtml(r.email)}</span>` : `<span class="muted">✉️ —</span>`}
           </div>
             <div class="meta">
-             ${r.consenso_whatsapp ? `<span>✅ Consenso Whatsapp` : `<span>❌ Consenso Whatsapp`}
+             ${r.consenso_whatsapp ? `<span>👍 Consenso Whatsapp` : `<span>👎 Consenso Whatsapp`}
           </div>
           </td>
 
