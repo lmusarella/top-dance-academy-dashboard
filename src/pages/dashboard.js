@@ -1,6 +1,7 @@
 import { getDashboardRows } from '../services/api.js';
 import { toast } from '../ui/toast.js';
 import { openPersonEditor } from './people.js';
+import { exportToXlsx } from '../ui/exportExcel.js';
 
 function chip(days) {
   if (days == null) return `<span >—</span>`;
@@ -18,8 +19,9 @@ export async function renderDashboard() {
         <div>
           <div class="h1">Dashboard</div>      
         </div>
-        <div class="hero-actions">        
-          <button class="btn primary" id="btnReload">Aggiorna</button>
+        <div class="hero-actions">              
+            <button class="btn primary" id="btnReload">Aggiorna</button>
+             <button class="btn ghost" id="btnExport">⬇ Export</button>
         </div>
       </div>
 
@@ -35,6 +37,9 @@ export async function renderDashboard() {
         <div class="search">
           <input id="q" placeholder="Cerca per nome, numero quota o numero tessera…" />
         </div>
+         <div class="meta">
+            Risultati: <b id="totShown">—</b> / <b id="totAll">—</b>
+         </div>
       </div>
 
       <div class="table-wrap">
@@ -63,9 +68,16 @@ export async function bindDashboardEvents() {
   const q = document.querySelector('#q');
   const body = document.querySelector('#dashBody');
   const kpis = document.querySelector('#kpis');
+const btnExport = document.querySelector('#btnExport');
+const totAllEl = document.querySelector('#totAll');
+const totShownEl = document.querySelector('#totShown');
 
   let rows = [];
-
+let shown = [];
+function setCounts(totalAll, totalShown) {
+  if (totAllEl) totAllEl.textContent = String(totalAll ?? 0);
+  if (totShownEl) totShownEl.textContent = String(totalShown ?? 0);
+}
   async function load() {
     body.innerHTML = `<tr><td colspan="4" class="muted">Carico dati…</td></tr>`;
     try {
@@ -77,7 +89,13 @@ export async function bindDashboardEvents() {
       body.innerHTML = `<tr><td colspan="4" class="muted">Errore</td></tr>`;
     }
   }
-
+btnExport?.addEventListener('click', async () => {
+  const toExport = shown.length ? shown : [];
+  exportToXlsx({
+    filename: `topdance_controllo_certificati_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    sheets: [{ name: 'Dashboard', rows: toExport }]
+  });
+});
   function computeKpi(list) {
     const days = list.map(x => x.giorni_rimanenti).filter(x => x != null);
     const expired = days.filter(d => d < 0).length;
@@ -91,6 +109,8 @@ export async function bindDashboardEvents() {
   }
 
   function renderRows(list) {
+    shown = Array.isArray(list) ? list : [];
+setCounts(rows.length, shown.length);
     const html = list.map(r => `
       <tr>
         <td>
@@ -171,7 +191,10 @@ export async function bindDashboardEvents() {
   });
 
 
-  btnReload?.addEventListener('click', load);
+btnReload?.addEventListener('click', async () => {
+  if (q) q.value = '';
+  await load();       // load() renderizza già e quindi shown=rows
+});
   q?.addEventListener('input', applyFilter);
 
   await load();

@@ -51,7 +51,7 @@ export async function renderPeople() {
   </div>
 
   <div class="h2">
-    Totale soci: <b id="totAll">—</b> • Risultati: <b id="totShown">—</b>
+    Risultati: <b id="totShown">—</b> / <b id="totAll">—</b>
   </div>
 </div>
 
