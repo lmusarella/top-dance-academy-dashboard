@@ -233,7 +233,18 @@ export async function bindPeopleEvents() {
     certStatus = certFilter.value || 'ALL';
     await resetAndLoad();
   });
+  function corsiToString(corsi) {
+  const arr = Array.isArray(corsi) ? corsi : [];
+  return arr.map(x => x?.nome).filter(Boolean).join(', ');
+}
+
+function pick(obj, keys) {
+  const out = {};
+  for (const k of keys) out[k] = obj?.[k];
+  return out;
+}
   btnExport.addEventListener('click', async () => {
+
     const all = await fetchAllPaged(({ limit, offset }) =>
       listPeoplePaged({
         q: q, limit, offset, certStatus,
@@ -241,9 +252,33 @@ export async function bindPeopleEvents() {
       })
     );
 
+     // quali colonne vuoi esportare (ordine incluso)
+  const EXPORT_COLS = [
+    'id',
+    'display_name',
+    'nr_quota',
+    'nr_tessera',
+    'ruolo',
+    'giorni_rimanenti',
+    'scadenza_fmt',
+    'telefono',
+    'email',
+    'consenso_whatsapp',
+    'corsi',
+    'corso', // la mettiamo noi come stringa
+  ];
+
+ const toExport = (all ?? []).map(r => {
+    const flat = {
+      ...r,
+      corsi: corsiToString(r.corsi), // <-- QUI il fix
+    };
+    return pick(flat, EXPORT_COLS);
+  });
+
     exportToXlsx({
       filename: `topdance_soci_${new Date().toISOString().slice(0, 10)}.xlsx`,
-      sheets: [{ name: 'People', rows: all }]
+      sheets: [{ name: 'People', rows: toExport }]
     });
   });
 

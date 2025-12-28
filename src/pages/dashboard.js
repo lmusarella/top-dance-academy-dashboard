@@ -89,13 +89,47 @@ function setCounts(totalAll, totalShown) {
       body.innerHTML = `<tr><td colspan="4" class="muted">Errore</td></tr>`;
     }
   }
+function corsiToString(corsi) {
+  const arr = Array.isArray(corsi) ? corsi : [];
+  return arr.map(x => x?.nome).filter(Boolean).join(', ');
+}
+
+function pick(obj, keys) {
+  const out = {};
+  for (const k of keys) out[k] = obj?.[k];
+  return out;
+}
 btnExport?.addEventListener('click', async () => {
-  const toExport = shown.length ? shown : [];
+   // quali colonne vuoi esportare (ordine incluso)
+  const EXPORT_COLS = [
+    'id',
+    'display_name',
+    'nr_quota',
+    'nr_tessera',
+    'ruolo',
+    'giorni_rimanenti',
+    'scadenza_fmt',
+    'telefono',
+    'email',
+    'consenso_whatsapp',
+    'corsi',
+    'corso', // la mettiamo noi come stringa
+  ];
+
+ const toExport = (shown ?? []).map(r => {
+    const flat = {
+      ...r,
+      corsi: corsiToString(r.corsi), // <-- QUI il fix
+    };
+    return pick(flat, EXPORT_COLS);
+  });
+
   exportToXlsx({
     filename: `topdance_controllo_certificati_${new Date().toISOString().slice(0, 10)}.xlsx`,
     sheets: [{ name: 'Dashboard', rows: toExport }]
   });
 });
+
   function computeKpi(list) {
     const days = list.map(x => x.giorni_rimanenti).filter(x => x != null);
     const expired = days.filter(d => d < 0).length;
