@@ -78,13 +78,36 @@ export async function deletePerson(personId) {
   if (error) throw error;
 }
 
-export async function listPeoplePaged({ q = '', limit = 50, offset = 0 } = {}) {
+export async function listPeoplePaged({
+  q = '',
+  limit = 50,
+  offset = 0,
+  certStatus = 'ALL',     // ALL | OK | EXPIRED | MISSING | EXPIRED_OR_MISSING
+  courseIds = []          // array di int
+} = {}) {
   let query = supabase
     .from('v_people_search')
     .select('*')
     .order('display_name', { ascending: true })
     .range(offset, offset + limit - 1);
 
+  // --- filtri certificato ---
+  if (certStatus && certStatus !== 'ALL') {
+    if (certStatus === 'EXPIRED_OR_MISSING') {
+      query = query.in('cert_status', ['EXPIRED', 'MISSING']);
+    } else {
+      query = query.eq('cert_status', certStatus);
+    }
+  }
+
+  // --- filtri corsi (match ANY) ---
+  const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
+  if (ids.length) {
+    // richiede course_ids int[] nella view
+    query = query.overlaps('course_ids', ids);
+  }
+
+  // --- ricerca testo ---
   const s = String(q ?? '').trim();
   if (!s) {
     const { data, error } = await query;
@@ -93,8 +116,6 @@ export async function listPeoplePaged({ q = '', limit = 50, offset = 0 } = {}) {
   }
 
   const isNumeric = /^\d+$/.test(s);
-
-  // normalizza spazi input (almeno lato FE)
   const sNorm = s.replace(/\s+/g, ' ');
 
   if (isNumeric) {
@@ -112,29 +133,41 @@ export async function listPeoplePaged({ q = '', limit = 50, offset = 0 } = {}) {
   return data ?? [];
 }
 
-export async function countPeople({ q = '' } = {}) {
+
+export async function countPeople({
+  q = '',
+  certStatus = 'ALL',
+  courseIds = []
+} = {}) {
   let query = supabase
     .from('v_people_search')
     .select('id', { count: 'exact', head: true });
 
-  const s = String(q ?? '').trim();
-  if (!s) {
-    const { count, error } = await query;
-    if (error) throw error;
-    return count ?? 0;
+  if (certStatus && certStatus !== 'ALL') {
+    if (certStatus === 'EXPIRED_OR_MISSING') {
+      query = query.in('cert_status', ['EXPIRED', 'MISSING']);
+    } else {
+      query = query.eq('cert_status', certStatus);
+    }
   }
 
-  const isNumeric = /^\d+$/.test(s);
-  const sNorm = s.replace(/\s+/g, ' ');
+  const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
+  if (ids.length) query = query.overlaps('course_ids', ids);
 
-  if (isNumeric) {
-    query = query.or(
-      `nr_quota.eq.${Number(sNorm)},nr_tessera.ilike.%${sNorm}%,display_name_norm.ilike.%${sNorm}%`
-    );
-  } else {
-    query = query.or(
-      `display_name_norm.ilike.%${sNorm}%,nr_tessera.ilike.%${sNorm}%`
-    );
+  const s = String(q ?? '').trim();
+  if (s) {
+    const isNumeric = /^\d+$/.test(s);
+    const sNorm = s.replace(/\s+/g, ' ');
+
+    if (isNumeric) {
+      query = query.or(
+        `nr_quota.eq.${Number(sNorm)},nr_tessera.ilike.%${sNorm}%,display_name_norm.ilike.%${sNorm}%`
+      );
+    } else {
+      query = query.or(
+        `display_name_norm.ilike.%${sNorm}%,nr_tessera.ilike.%${sNorm}%`
+      );
+    }
   }
 
   const { count, error } = await query;

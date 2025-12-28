@@ -32,14 +32,48 @@ export async function renderPeople() {
         </div>
       </div>
 
-      <div class="panel-top">
-        <div class="search">
-          <input id="peopleQ" placeholder="Cerca per nome, numero quota o numero tessera…" />
-        </div>
-         <div class="h2">
-          Totale soci: <b id="totAll">—</b> • Risultati: <b id="totShown">—</b>
-        </div>   
-      </div>
+    <div class="panel-top">
+  <div class="search-row">
+    <div class="search">
+      <input id="peopleQ"
+             placeholder="Cerca per nome, numero quota o numero tessera…" />
+    </div>
+
+    <div class="cert-filter">
+      <select id="certFilter">
+        <option value="ALL">Tutti i certificati</option>
+        <option value="OK">🟢 Ok</option>
+        <option value="EXPIRED">🔴 Scaduti</option>
+        <option value="MISSING">❌ Assenti</option>
+        <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="h2">
+    Totale soci: <b id="totAll">—</b> • Risultati: <b id="totShown">—</b>
+  </div>
+</div>
+
+
+        <div class="field" style="min-width:320px">
+              <div class="meta"><b>Corsi</b></div>
+              <div class="courses-filter-wrap">
+              <button class="btn ghost" type="button" id="btnCourses">Seleziona corsi</button>
+              <div id="coursesChips" class="chips"></div>
+              <div id="coursesFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
+                <div class="muted" id="coursesFilterStatus">Carico corsi…</div>
+                <div id="coursesFilterList" class="stack" style="gap:6px; margin-top:8px"></div>
+
+                <div class="row" style="justify-content:space-between; margin-top:10px">
+                  <button class="btn ghost" type="button" id="btnCoursesAll">Tutti</button>
+                  <button class="btn ghost" type="button" id="btnCoursesNone">Nessuno</button>
+                  <button class="btn primary" type="button" id="btnCoursesApply">Applica</button>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
 
       <div class="table-wrap">
         <table class="table">
@@ -75,23 +109,23 @@ export async function bindPeopleEvents() {
   const totAllEl = document.querySelector('#totAll');
   const totShownEl = document.querySelector('#totShown');
   const btnExport = document.querySelector('#btnExport');
+  const coursesChips = document.querySelector('#coursesChips');
+  const certFilter = document.querySelector('#certFilter');
+  const btnCourses = document.querySelector('#btnCourses');
+  const coursesFilterBox = document.querySelector('#coursesFilterBox');
+  const coursesFilterStatus = document.querySelector('#coursesFilterStatus');
+  const coursesFilterList = document.querySelector('#coursesFilterList');
+  const btnCoursesAll = document.querySelector('#btnCoursesAll');
+  const btnCoursesNone = document.querySelector('#btnCoursesNone');
+  const btnCoursesApply = document.querySelector('#btnCoursesApply');
 
-
-
-  btnExport.addEventListener('click', async () => {
-    const all = await fetchAllPaged(({ limit, offset }) =>
-      listPeoplePaged({ q: '', limit, offset, sortKey: 'display_name', sortAsc: true })
-    );
-
-    exportToXlsx({
-      filename: `topdance_people_${new Date().toISOString().slice(0, 10)}.xlsx`,
-      sheets: [{ name: 'People', rows: all }]
-    });
-  });
 
 
   const PAGE = 60;
-
+  let certStatus = 'ALL';
+  let selectedCourseIds = [];      // filtri attivi
+  let pendingCourseIds = [];       // selezione “nel box” prima di Applica
+  let allCoursesCache = null;
   let q = '';
   let offset = 0;
   let loading = false;
@@ -111,6 +145,155 @@ export async function bindPeopleEvents() {
    
   `;
   }
+  function setBtnCoursesLabel() {
+    if (!selectedCourseIds.length) {
+      btnCourses.textContent = 'Seleziona corsi';
+    } else {
+      btnCourses.textContent = `Corsi selezionati: ${selectedCourseIds.length}`;
+    }
+  }
+  function mapCourseIdToName() {
+    const m = new Map();
+    for (const c of (allCoursesCache ?? [])) m.set(Number(c.id), c.nome_corso);
+    return m;
+  }
+
+  function renderSelectedCourseChips() {
+    if (!coursesChips) return;
+
+    if (!selectedCourseIds.length) {
+      coursesChips.innerHTML = '';
+      return;
+    }
+
+    const nameById = mapCourseIdToName();
+
+    coursesChips.innerHTML = selectedCourseIds
+      .map(id => {
+        const label = nameById.get(Number(id)) ?? `Corso #${id}`;
+        return `
+        <span class="chip" data-course-id="${id}">
+          <span>${esc(label)}</span>
+          <span class="x" title="Rimuovi" data-remove="${id}">×</span>
+        </span>
+      `;
+      })
+      .join('');
+  }
+  coursesChips?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+
+    const id = Number(btn.getAttribute('data-remove'));
+    if (!Number.isFinite(id)) return;
+
+    selectedCourseIds = selectedCourseIds.filter(x => Number(x) !== id);
+    setBtnCoursesLabel();
+    renderSelectedCourseChips();
+    await resetAndLoad();
+  });
+  function renderCoursesFilterList(allCourses, checkedIds) {
+    const checked = new Set((checkedIds ?? []).map(Number));
+    const groups = new Map();
+
+    for (const c of (allCourses ?? [])) {
+      const key = c.tipo_corso || 'ALTRO';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(c);
+    }
+
+    coursesFilterStatus.textContent = '';
+
+    coursesFilterList.innerHTML = Array.from(groups.entries()).map(([tipo, items]) => `
+    <div class="course-group">
+      <div class="meta"><b>${esc(tipo)}</b></div>
+      <div class="course-grid">
+        ${items.map(c => `
+          <label class="course-item">
+            <input type="checkbox" value="${c.id}" ${checked.has(c.id) ? 'checked' : ''}/>
+            <span>${esc(c.nome_corso)}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `).join('') || `<span class="muted">Nessun corso.</span>`;
+  }
+
+  async function ensureCoursesLoaded() {
+    if (allCoursesCache) return allCoursesCache;
+    allCoursesCache = await listCourses({ onlyActive: true });
+    return allCoursesCache;
+  }
+
+  function readPendingSelectedFromUI() {
+    return Array.from(coursesFilterList.querySelectorAll('input[type="checkbox"]:checked'))
+      .map(x => Number(x.value))
+      .filter(Number.isFinite);
+  }
+  certFilter.addEventListener('change', async () => {
+    certStatus = certFilter.value || 'ALL';
+    await resetAndLoad();
+  });
+  btnExport.addEventListener('click', async () => {
+    const all = await fetchAllPaged(({ limit, offset }) =>
+      listPeoplePaged({
+        q: q, limit, offset, certStatus,
+        courseIds: selectedCourseIds
+      })
+    );
+
+    exportToXlsx({
+      filename: `topdance_soci_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      sheets: [{ name: 'People', rows: all }]
+    });
+  });
+
+  btnCourses.addEventListener('click', async () => {
+    const isOpen = coursesFilterBox.style.display !== 'none';
+    if (isOpen) {
+      coursesFilterBox.style.display = 'none';
+      return;
+    }
+
+    coursesFilterBox.style.display = 'block';
+    coursesFilterStatus.textContent = 'Carico corsi…';
+
+    try {
+      const all = await ensureCoursesLoaded();
+      pendingCourseIds = [...selectedCourseIds];
+      renderCoursesFilterList(all, pendingCourseIds);
+      renderSelectedCourseChips();
+    } catch (e) {
+      coursesFilterStatus.textContent = 'Errore caricamento corsi';
+    }
+  });
+
+  btnCoursesAll.addEventListener('click', async () => {
+    const all = await ensureCoursesLoaded();
+    pendingCourseIds = all.map(c => c.id);
+    renderCoursesFilterList(all, pendingCourseIds);
+    renderSelectedCourseChips();
+  });
+
+  btnCoursesNone.addEventListener('click', async () => {
+    const all = await ensureCoursesLoaded();
+    pendingCourseIds = [];
+    renderCoursesFilterList(all, pendingCourseIds);
+    renderSelectedCourseChips();
+  });
+
+  btnCoursesApply.addEventListener('click', async () => {
+    pendingCourseIds = readPendingSelectedFromUI();
+    selectedCourseIds = [...pendingCourseIds];
+    setBtnCoursesLabel();
+    coursesFilterBox.style.display = 'none';
+    await resetAndLoad();
+    renderSelectedCourseChips();
+  });
+
+  // label iniziale
+  setBtnCoursesLabel();
+
   function rowHtml(r) {
 
     return `
@@ -160,7 +343,10 @@ export async function bindPeopleEvents() {
     setStatus('Carico…');
 
     try {
-      const rows = await listPeoplePaged({ q, limit: PAGE, offset });
+      const rows = await listPeoplePaged({
+        q, limit: PAGE, offset, certStatus,
+        courseIds: selectedCourseIds
+      });
       if (rows.length === 0) {
         done = true;
         setStatus(offset === 0 ? 'Nessun risultato.' : 'Fine lista.');
@@ -188,8 +374,8 @@ export async function bindPeopleEvents() {
     const totalAll = await countPeople({ q: '' });  // totale soci
     setCounts({ totalAll, totalShown: totalAll });
 
-    if (q) {
-      const totalFiltered = await countPeople({ q });
+    if (q || certStatus || courseIds) {
+      const totalFiltered = await countPeople({ q, certStatus, courseIds: selectedCourseIds });
       setCounts({ totalShown: totalFiltered });
       // volendo puoi mostrare anche "Risultati: X" come totale filtrato atteso
       // qui uso lo stesso campo totShown solo per "caricati finora"
