@@ -5,7 +5,7 @@ import {
 } from '../services/api.js';
 
 import { toast } from '../ui/toast.js';
-import { openModal } from '../ui/modal.js';
+import { openModal, confirmDialog } from '../ui/modal.js';
 
 import { fetchAllPaged } from '../services/api.js';
 import { exportToXlsx } from '../ui/exportExcel.js';
@@ -234,15 +234,15 @@ export async function bindPeopleEvents() {
     await resetAndLoad();
   });
   function corsiToString(corsi) {
-  const arr = Array.isArray(corsi) ? corsi : [];
-  return arr.map(x => x?.nome).filter(Boolean).join(', ');
-}
+    const arr = Array.isArray(corsi) ? corsi : [];
+    return arr.map(x => x?.nome).filter(Boolean).join(', ');
+  }
 
-function pick(obj, keys) {
-  const out = {};
-  for (const k of keys) out[k] = obj?.[k];
-  return out;
-}
+  function pick(obj, keys) {
+    const out = {};
+    for (const k of keys) out[k] = obj?.[k];
+    return out;
+  }
   btnExport.addEventListener('click', async () => {
 
     const all = await fetchAllPaged(({ limit, offset }) =>
@@ -252,29 +252,29 @@ function pick(obj, keys) {
       })
     );
 
-     // quali colonne vuoi esportare (ordine incluso)
-  const EXPORT_COLS = [
-    'id',
-    'display_name',
-    'nr_quota',
-    'nr_tessera',
-    'ruolo',
-    'giorni_rimanenti',
-    'scadenza_fmt',
-    'telefono',
-    'email',
-    'consenso_whatsapp',
-    'corsi',
-    'corso', // la mettiamo noi come stringa
-  ];
+    // quali colonne vuoi esportare (ordine incluso)
+    const EXPORT_COLS = [
+      'id',
+      'display_name',
+      'nr_quota',
+      'nr_tessera',
+      'ruolo',
+      'giorni_rimanenti',
+      'scadenza_fmt',
+      'telefono',
+      'email',
+      'consenso_whatsapp',
+      'corsi',
+      'corso', // la mettiamo noi come stringa
+    ];
 
- const toExport = (all ?? []).map(r => {
-    const flat = {
-      ...r,
-      corsi: corsiToString(r.corsi), // <-- QUI il fix
-    };
-    return pick(flat, EXPORT_COLS);
-  });
+    const toExport = (all ?? []).map(r => {
+      const flat = {
+        ...r,
+        corsi: corsiToString(r.corsi), // <-- QUI il fix
+      };
+      return pick(flat, EXPORT_COLS);
+    });
 
     exportToXlsx({
       filename: `topdance_soci_${new Date().toISOString().slice(0, 10)}.xlsx`,
@@ -453,7 +453,15 @@ function pick(obj, keys) {
 
     const delId = btn.getAttribute('data-del');
     if (delId) {
-      if (!confirm('Eliminare questa persona?')) return;
+      const ok = await confirmDialog({
+        title: 'Elimina socio',
+        message: 'Vuoi eliminare questa persona?',
+        details: 'L’operazione rimuove anche contatti, tessera, certificato e corsi collegati.',
+        confirmText: 'Elimina',
+        cancelText: 'Annulla',
+        danger: true,
+      });
+      if (!ok) return;
       try {
         await deletePerson(delId);
         toast('Eliminato', 'ok');
@@ -668,7 +676,15 @@ export async function openPersonEditor({ personId, onSaved }) {
   const delBtn = form.querySelector('[data-delete]');
   if (delBtn) {
     delBtn.addEventListener('click', async () => {
-      if (!confirm('Eliminare questa persona?')) return;
+      const ok = await confirmDialog({
+        title: 'Elimina socio',
+        message: 'Vuoi eliminare questa persona?',
+        details: 'L’operazione rimuove anche contatti, tessera, certificato e corsi collegati.',
+        confirmText: 'Elimina',
+        cancelText: 'Annulla',
+        danger: true,
+      });
+      if (!ok) return;
       try {
         await deletePerson(personId);
         toast('Eliminato', 'ok');

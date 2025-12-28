@@ -727,3 +727,24 @@ select option{
   background: rgba(255,255,255,0.32);
   background-clip: padding-box;
 }
+.confirm{
+  display: grid;
+  gap: 14px;
+  min-width: min(520px, 86vw);
+}
+
+.confirm-title{
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.confirm-details{
+  margin-top: 6px;
+  line-height: 1.35;
+}
+
+.confirm-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}

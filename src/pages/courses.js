@@ -2,14 +2,13 @@
 import { toast } from '../ui/toast.js';
 import {
   refreshCourseCount,
-
   listCoursesWithCounts,
   listCourseParticipants,
   searchPeople,
   addPeopleToCourse,
   removePersonFromCourse
 } from '../services/api.js';
-
+import {  confirmDialog } from '../ui/modal.js';
 const cacheParticipants = new Map(); // courseId -> people[]
 
 export async function renderCourses() {
@@ -359,8 +358,15 @@ export async function bindCoursesEvents() {
     if (rm) {
       const courseId = Number(rm.getAttribute('data-course'));
       const personId = rm.getAttribute('data-remove');
-
-      if (!confirm('Rimuovere questa persona dal corso?')) return;
+      const ok = await confirmDialog({
+        title: 'Rimuovi partecipante',
+        message: 'Vuoi rimuovere questa persona dal corso?',
+        details: 'L’operazione rimuove il socio dal corso.',
+        confirmText: 'Elimina',
+        cancelText: 'Annulla',
+        danger: true,
+      });
+      if (!ok) return;
 
       try {
         await removePersonFromCourse(courseId, personId);
