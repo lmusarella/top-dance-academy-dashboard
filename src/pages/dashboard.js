@@ -43,7 +43,8 @@ export async function renderDashboard() {
             <tr>
               <th>Socio</th>
               <th>Certificato</th>
-              <th>Contatti</th>            
+              <th>Contatti</th>
+               <th>Corsi</th>             
             </tr>
           </thead>
           <tbody id="dashBody">
@@ -120,14 +121,22 @@ export async function bindDashboardEvents() {
           </div>
           </td>
 
-
+ <td>${chipsHtml(r.corsi)}</td>
        
       </tr>
     `).join('');
 
     body.innerHTML = html || `<tr><td colspan="4" class="muted">Nessun dato</td></tr>`;
   }
-
+  function chipsHtml(corsiJson) {
+    const arr = Array.isArray(corsiJson) ? corsiJson : [];
+    if (!arr.length) return `<span class="muted">—</span>`;
+    return `
+    
+      ${arr.map(c => `<span class="meta">${escapeHtml(c.nome)}</span>`).join('')}
+   
+  `;
+  }
   function applyFilter() {
     const s = (q.value || '').trim().toLowerCase();
     if (!s) return renderRows(rows);
