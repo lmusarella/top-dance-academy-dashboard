@@ -257,3 +257,52 @@ export async function addPeopleToCourse(courseId, personIds) {
   const { error } = await supabase.from('person_courses').insert(rows, { returning: 'minimal' });
   if (error) throw error;
 }
+// --- CORSI per PERSONA (person_courses) ---
+
+export async function listCourses({ onlyActive = true } = {}) {
+  let q = supabase
+    .from('courses')
+    .select('id, nome_corso, tipo_corso, is_active')
+    .order('tipo_corso', { ascending: true })
+    .order('nome_corso', { ascending: true });
+
+  if (onlyActive) q = q.eq('is_active', true);
+
+  const { data, error } = await q;
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getPersonCourseIds(personId) {
+  const { data, error } = await supabase
+    .from('person_courses')
+    .select('course_id')
+    .eq('person_id', personId);
+
+  if (error) throw error;
+  return (data ?? []).map(r => r.course_id);
+}
+
+export async function setPersonCourses(personId, desiredCourseIds = []) {
+  const current = await getPersonCourseIds(personId);
+  const desired = Array.from(new Set((desiredCourseIds ?? []).map(Number)));
+
+  const toAdd = desired.filter(id => !current.includes(id));
+  const toRemove = current.filter(id => !desired.includes(id));
+
+  if (toAdd.length) {
+    const rows = toAdd.map(course_id => ({ person_id: personId, course_id }));
+    const { error } = await supabase.from('person_courses').insert(rows, { returning: 'minimal' });
+    if (error) throw error;
+  }
+
+  for (const course_id of toRemove) {
+    const { error } = await supabase
+      .from('person_courses')
+      .delete()
+      .eq('person_id', personId)
+      .eq('course_id', course_id);
+
+    if (error) throw error;
+  }
+}

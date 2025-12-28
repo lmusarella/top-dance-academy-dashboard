@@ -1,8 +1,9 @@
 import {
   getPersonFull,
   upsertPerson, upsertContact, upsertMembership, upsertCertificate,
-  deletePerson, listPeoplePaged, countPeople
+  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses
 } from '../services/api.js';
+
 import { toast } from '../ui/toast.js';
 import { openModal } from '../ui/modal.js';
 
@@ -101,17 +102,17 @@ export async function bindPeopleEvents() {
     if (totalAll !== null) totAllEl.textContent = String(totalAll);
     if (totalShown !== null) totShownEl.textContent = String(totalShown);
   }
-function chipsHtml(corsiJson) {
-  const arr = Array.isArray(corsiJson) ? corsiJson : [];
-  if (!arr.length) return `<span class="muted">—</span>`;
-  return `
+  function chipsHtml(corsiJson) {
+    const arr = Array.isArray(corsiJson) ? corsiJson : [];
+    if (!arr.length) return `<span class="muted">—</span>`;
+    return `
     
       ${arr.map(c => `<span class="meta">${escapeHtml(c.nome)}</span>`).join('')}
    
   `;
-}
+  }
   function rowHtml(r) {
-  
+
     return `
       <tr>
         <td>
@@ -120,7 +121,7 @@ function chipsHtml(corsiJson) {
         </td>
         <td>
           <div class="meta">
-            <span>${r.giorni_rimanenti == null ? '❌ Assente': r.giorni_rimanenti <= 0 ? '🔴 Scaduto': '🟢 Ok'}</span>
+            <span>${r.giorni_rimanenti == null ? '❌ Assente' : r.giorni_rimanenti < 0 ? '🔴 Scaduto' : '🟢 Ok'}</span>
           </div>
           <div class="meta">
              <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
@@ -277,10 +278,14 @@ export async function openPersonEditor({ personId, onSaved }) {
       <input name="nr_quota" type="number" placeholder="123"/>
     </label>
 
-    <label class="field">
-      <span>Corso</span>
-      <input name="corso" placeholder="Es. Salsa Base"/>
-    </label>
+    <div class="section">Corsi</div>
+
+    <div class="field span2">
+      <div class="label">Seleziona corsi</div>
+      <div id="coursesBox" class="courses-box muted">Carico corsi…</div>
+    </div>
+
+    <input type="hidden" name="course_ids" value="[]"/>
 
     <label class="field">
       <span>Ruolo</span>
@@ -333,7 +338,7 @@ export async function openPersonEditor({ personId, onSaved }) {
 
     <label class="field">
       <span>Scadenza (YYYY-MM-DD)</span>
-      <input name="scadenza" placeholder="2026-02-14"/>
+      <input name="scadenza" type="date"/>
     </label>
 
     <label class="field">
@@ -353,6 +358,50 @@ export async function openPersonEditor({ personId, onSaved }) {
     content: form
   });
 
+  const coursesBox = form.querySelector('#coursesBox');
+
+  // render lista corsi come checkbox
+  function renderCoursesOptions(allCourses, selectedIds) {
+    const selected = new Set((selectedIds ?? []).map(Number));
+    const groups = new Map(); // tipo_corso -> corsi
+
+    for (const c of (allCourses ?? [])) {
+      const key = c.tipo_corso || 'ALTRO';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(c);
+    }
+
+    const html = Array.from(groups.entries()).map(([tipo, items]) => {
+      return `
+        <div class="course-group">
+          <div class="meta"><b>${esc(tipo)}</b></div>
+          <div class="course-grid">
+            ${items.map(c => `
+              <label class="course-item">
+                <input type="checkbox" value="${c.id}" ${selected.has(c.id) ? 'checked' : ''}/>
+                <span>${esc(c.nome_corso)}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    coursesBox.classList.remove('muted');
+    coursesBox.innerHTML = html || `<span class="muted">Nessun corso.</span>`;
+
+    // sync hidden field
+    const hidden = form.querySelector('[name="course_ids"]');
+    const syncHidden = () => {
+      const checked = Array.from(coursesBox.querySelectorAll('input[type="checkbox"]:checked'))
+        .map(x => Number(x.value));
+      hidden.value = JSON.stringify(checked);
+    };
+
+    coursesBox.addEventListener('change', syncHidden);
+    syncHidden();
+  }
+
   // preload se edit
   if (isEdit) {
     try {
@@ -360,7 +409,6 @@ export async function openPersonEditor({ personId, onSaved }) {
       fill(form, {
         display_name: full.person.display_name ?? '',
         nr_quota: full.person.nr_quota ?? '',
-        corso: full.person.corso ?? '',
         ruolo: full.person.ruolo ?? 'ALLIEVO',
 
         telefono: full.contact?.telefono ?? '',
@@ -376,8 +424,24 @@ export async function openPersonEditor({ personId, onSaved }) {
         scadenza: full.certificate?.scadenza ?? '',
         fonte: full.certificate?.fonte ?? '',
       });
+      // carica corsi (lista + selezionati)
+      const [allCourses, selectedCourseIds] = await Promise.all([
+        listCourses({ onlyActive: true }),
+        getPersonCourseIds(personId),
+      ]);
+
+      renderCoursesOptions(allCourses, selectedCourseIds);
+
     } catch (e) {
       toast(e?.message ?? 'Errore caricamento', 'error');
+    }
+  }
+  if (!isEdit) {
+    try {
+      const allCourses = await listCourses({ onlyActive: true });
+      renderCoursesOptions(allCourses, []);
+    } catch (e) {
+      coursesBox.innerHTML = `<span class="muted">Errore caricamento corsi</span>`;
     }
   }
 
@@ -406,7 +470,6 @@ export async function openPersonEditor({ personId, onSaved }) {
       ...(isEdit ? { id: personId } : {}),
       display_name: String(fd.get('display_name') || '').trim(),
       nr_quota: numOrNull(fd.get('nr_quota')),
-      corso: strOrNull(fd.get('corso')),
       ruolo: String(fd.get('ruolo') || 'ALLIEVO'),
     };
 
@@ -437,6 +500,9 @@ export async function openPersonEditor({ personId, onSaved }) {
           fonte: strOrNull(fd.get('fonte')),
         }),
       ]);
+      // sync corsi
+      const selectedIds = JSON.parse(String(fd.get('course_ids') || '[]'));
+      await setPersonCourses(id, selectedIds);
 
       toast('Salvato', 'ok');
       close();
