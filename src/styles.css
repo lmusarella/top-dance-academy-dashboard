@@ -495,7 +495,7 @@ select option{
 
 /* --- COURSES FILTER PANEL --- */
 #coursesFilterBox{
-  width: min(720px, 92vw);
+  width: 100%;
   max-height: 340px;
   overflow: auto;
    background: rgba(10, 14, 20, 0.96) !important;
@@ -577,8 +577,7 @@ select option{
   top: calc(100% + 8px);
   left: 0;
 
-  width: min(720px, 92vw);
-  max-height: 340px;
+
   overflow: auto;
 
   z-index: 9999;              /* sopra la tabella */
@@ -657,4 +656,74 @@ select option{
   .search-row .search input{
     width: 100%;
   }
+}
+/* =========================
+   Scrollbar theme (global)
+   ========================= */
+
+/* Firefox */
+*{
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.22) rgba(255,255,255,0.06);
+}
+
+/* WebKit (Chrome/Edge/Safari) */
+*::-webkit-scrollbar{
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track{
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.22);
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0);       /* crea “padding” */
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover{
+  background: rgba(255,255,255,0.32);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner{
+  background: transparent;
+}
+.panel, .table-wrap, #coursesFilterBox{
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.22) rgba(255,255,255,0.06);
+}
+
+.panel::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar,
+#coursesFilterBox::-webkit-scrollbar{
+  width: 10px;
+  height: 10px;
+}
+
+.panel::-webkit-scrollbar-track,
+.table-wrap::-webkit-scrollbar-track,
+#coursesFilterBox::-webkit-scrollbar-track{
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+}
+
+.panel::-webkit-scrollbar-thumb,
+.table-wrap::-webkit-scrollbar-thumb,
+#coursesFilterBox::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.22);
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0);
+  background-clip: padding-box;
+}
+
+.panel::-webkit-scrollbar-thumb:hover,
+.table-wrap::-webkit-scrollbar-thumb:hover,
+#coursesFilterBox::-webkit-scrollbar-thumb:hover{
+  background: rgba(255,255,255,0.32);
+  background-clip: padding-box;
 }

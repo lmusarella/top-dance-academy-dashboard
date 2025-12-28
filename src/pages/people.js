@@ -56,10 +56,9 @@ export async function renderPeople() {
 </div>
 
 
-        <div class="field" style="min-width:320px">
-              <div class="meta"><b>Corsi</b></div>
+        <div class="field">            
               <div class="courses-filter-wrap">
-              <button class="btn ghost" type="button" id="btnCourses">Seleziona corsi</button>
+              <button class="btn primary" type="button" id="btnCourses">Seleziona corsi</button>
               <div id="coursesChips" class="chips"></div>
               <div id="coursesFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
                 <div class="muted" id="coursesFilterStatus">Carico corsi…</div>
@@ -452,10 +451,10 @@ export async function openPersonEditor({ personId, onSaved }) {
   const form = document.createElement('form');
   form.className = 'form grid2';
   form.innerHTML = `
-    <div class="section">Socio</div>
+    <div class="section"><h3>Informazioni Generali</h3></div>
 
     <label class="field">
-      <span>Display name *</span>
+      <span>Nome*</span>
       <input name="display_name" required placeholder="COGNOME NOME"/>
     </label>
 
@@ -463,15 +462,6 @@ export async function openPersonEditor({ personId, onSaved }) {
       <span>Nr quota</span>
       <input name="nr_quota" type="number" placeholder="123"/>
     </label>
-
-    <div class="section">Corsi</div>
-
-    <div class="field span2">
-      <div class="label">Seleziona corsi</div>
-      <div id="coursesBox" class="courses-box muted">Carico corsi…</div>
-    </div>
-
-    <input type="hidden" name="course_ids" value="[]"/>
 
     <label class="field">
       <span>Ruolo</span>
@@ -482,7 +472,17 @@ export async function openPersonEditor({ personId, onSaved }) {
       </select>
     </label>
 
-    <div class="section">Contatti</div>
+     <label class="field">
+      <span>Nr tessera</span>
+      <input name="nr_tessera" placeholder="..."/>
+    </label>
+
+    <label class="field">
+      <span>Note</span>
+      <input name="note" placeholder="..."/>
+    </label>
+
+    <div class="section"><h3>Contatti</h3></div>
 
     <label class="field">
       <span>Telefono</span>
@@ -508,19 +508,7 @@ export async function openPersonEditor({ personId, onSaved }) {
       </select>
     </label>
 
-    <div class="section">Tessera</div>
-
-    <label class="field">
-      <span>Nr tessera</span>
-      <input name="nr_tessera" placeholder="..."/>
-    </label>
-
-    <label class="field">
-      <span>Note</span>
-      <input name="note" placeholder="..."/>
-    </label>
-
-    <div class="section">Certificato</div>
+    <div class="section"><h3>Certificato</h3></div>
 
     <label class="field">
       <span>Scadenza (YYYY-MM-DD)</span>
@@ -532,9 +520,18 @@ export async function openPersonEditor({ personId, onSaved }) {
       <input name="fonte" placeholder="Import/Manuale"/>
     </label>
 
+        <div class="section"><h3>Corsi</h3></div>
+
+    <div class="field span2">
+     
+      <div id="coursesBox" class="courses-box muted">Carico corsi…</div>
+    </div>
+
+    <input type="hidden" name="course_ids" value="[]"/>
+
     <div class="row span2 actions">
       <button class="btn ghost" type="button" data-cancel>Annulla</button>
-      ${isEdit ? `<button class="btn ghost danger" type="button" data-delete>Elimina</button>` : `<span></span>`}
+      <span></span>
       <button class="btn primary" type="submit">Salva</button>
     </div>
   `;

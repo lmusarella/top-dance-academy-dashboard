@@ -4,7 +4,7 @@ export function openModal({ title, content, onClose }) {
     <div class="modal-backdrop">
       <div class="modal glass">
         <div class="modal-head">
-          <div class="modal-title">${escapeHtml(title || '')}</div>
+          <div class="modal-title"><h2>${escapeHtml(title || '')}</h2></div>
           <button class="icon-btn" data-x title="Chiudi">✕</button>
         </div>
         <div class="modal-body"></div>
