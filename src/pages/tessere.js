@@ -12,12 +12,6 @@ function esc(s) {
     .replaceAll("'", '&#039;');
 }
 
-function formatConsent(value) {
-  if (value === true) return 'Sì';
-  if (value === false) return 'No';
-  return '—';
-}
-
 export async function renderTessere() {
   return `
   <div class="stack">

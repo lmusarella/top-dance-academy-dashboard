@@ -18,8 +18,8 @@ function escapeHtml(s) {
     .replaceAll("'", '&#039;');
 }
 function formatConsent(value) {
-  if (value === true) return '👍';
-  if (value === false) return '👎';
+  if (value === true) return 'Sì 👍';
+  if (value === false) return 'No 👎';
   return '—';
 }
 export async function renderPeople() {

@@ -12,8 +12,8 @@ function chip(days) {
 }
 
 function formatConsent(value) {
-  if (value === true) return '👍';
-  if (value === false) return '👎';
+  if (value === true) return 'Sì 👍';
+  if (value === false) return 'No 👎';
   return '—';
 }
 
