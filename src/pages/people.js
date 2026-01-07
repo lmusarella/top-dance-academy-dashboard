@@ -408,7 +408,8 @@ export async function bindPeopleEvents() {
     const totalAll = await countPeople({ q: '' });  // totale soci
     setCounts({ totalAll, totalShown: totalAll });
 
-    if (q || certStatus || courseIds) {
+    const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0;
+    if (hasFilters) {
       const totalFiltered = await countPeople({ q, certStatus, courseIds: selectedCourseIds });
       setCounts({ totalShown: totalFiltered });
       // volendo puoi mostrare anche "Risultati: X" come totale filtrato atteso
