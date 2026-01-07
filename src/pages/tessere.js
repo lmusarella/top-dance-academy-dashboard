@@ -72,10 +72,9 @@ export async function renderTessere() {
               <th>Quota</th>
               <th>Socio</th>
               <th>Tessera</th>
+              <th>Note</th>
               <th>Codice fiscale</th>
               <th>Modulo Safeguarding</th>
-              <th>Note</th>
-              <th>Contatti</th>
               <th class="right">Azioni</th>
             </tr>
           </thead>
@@ -140,22 +139,11 @@ export async function bindTessereEvents() {
           <div class="meta">${r.ruolo ? esc(r.ruolo) : ''}</div>
         </td>
         <td>${esc(r.nr_tessera ?? '—')}</td>
+        <td>${esc(r.note ?? '—')}</td>
         <td>${esc(r.codice_fiscale ?? '—')}</td>
         <td>${esc(r.safeguarding ?? '—')}</td>
-        <td>${esc(r.note ?? '—')}</td>
-        <td>
-          <div class="meta">
-            ${r.telefono ? `<span>📞 ${esc(r.telefono)}</span>` : `<span class="muted">📞 —</span>`}
-          </div>
-          <div class="meta">
-            ${r.email ? `<span>✉️ ${esc(r.email)}</span>` : `<span class="muted">✉️ —</span>`}
-          </div>
-          <div class="meta">
-            <span>Consenso WhatsApp: ${formatConsent(r.consenso_whatsapp)}</span>
-          </div>
-        </td>
         <td class="right">
-          <button class="icon-btn sm" data-edit="${r.person_id ?? r.id}" title="Modifica">✎</button>
+          <button class="icon-btn sm" data-edit="${r.id}" title="Modifica">✎</button>
         </td>
       </tr>
     `;
