@@ -143,7 +143,7 @@ export async function bindTessereEvents() {
         <td>${esc(r.codice_fiscale ?? '—')}</td>
         <td>${esc(r.safeguarding ?? '—')}</td>
         <td class="right">
-          <button class="icon-btn sm" data-edit="${r.id ?? r.person_id}" title="Modifica">✎</button>
+          <button class="icon-btn sm" data-edit="${r.person_id ?? r.id ?? ''}" title="Modifica">✎</button>
         </td>
       </tr>
     `;
@@ -310,8 +310,15 @@ export async function bindTessereEvents() {
     const personId = Number(editBtn.getAttribute('data-edit'));
     if (!Number.isFinite(personId)) return;
     const row = (cacheRows ?? []).find(r => Number(r.person_id ?? r.id) === personId);
-    if (!row) return;
-    await openTesseraEditor(row);
+    if (!row) {
+      toast('Impossibile trovare la tessera selezionata', 'error');
+      return;
+    }
+    try {
+      await openTesseraEditor(row);
+    } catch (err) {
+      toast(err?.message ?? 'Errore apertura modifica', 'error');
+    }
   });
   btnExport?.addEventListener('click', async () => {
     try {
