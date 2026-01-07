@@ -7,7 +7,8 @@ import {
   searchPeople,
   addPeopleToCourse,
   removePersonFromCourse,
-  upsertCourse
+  upsertCourse,
+  deleteCourse
 } from '../services/api.js';
 import { openModal, confirmDialog } from '../ui/modal.js';
 const cacheParticipants = new Map(); // courseId -> people[]
@@ -30,6 +31,7 @@ export async function renderCourses() {
         <div class="search">
           <input id="qCourse" placeholder="Cerca corso…" />
         </div>
+        <div class="meta">Risultati: <b id="coursesCount">—</b></div>
         <div class="chips">
           <button class="chip-btn active" data-type="">Tutti</button>
           <button class="chip-btn" data-type="BALLO">Ballo</button>
@@ -47,6 +49,7 @@ export async function renderCourses() {
 export async function bindCoursesEvents() {
   const listEl = document.querySelector('#coursesList');
   const qInput = document.querySelector('#qCourse');
+  const countEl = document.querySelector('#coursesCount');
 
   const typeBtns = Array.from(document.querySelectorAll('.chip-btn'));
 
@@ -84,6 +87,8 @@ export async function bindCoursesEvents() {
             <span class="acc-teachers-name">${teachersTxt}</span>
           </div>
           <div class="acc-count muted" data-count>${countTxt}</div>
+          <button class="icon-btn sm" type="button" data-edit="${c.id}" title="Modifica corso">✎</button>
+          <button class="icon-btn sm danger" type="button" data-delete="${c.id}" title="Elimina corso">🗑</button>
         </div>
       </summary>
 
@@ -91,7 +96,6 @@ export async function bindCoursesEvents() {
         ${desc}
         <div class="acc-actions">
           <button class="btn tiny primary" data-add>Aggiungi membri</button>
-          <button class="btn tiny ghost" data-edit="${c.id}">Modifica corso</button>
         </div>
         <div class="participants" data-participants>
           <div class="muted">Caricamento…</div>
@@ -108,6 +112,7 @@ export async function bindCoursesEvents() {
     if (tipo) filtered = filtered.filter(c => c.tipo_corso === tipo);
     if (s) filtered = filtered.filter(c => (c.nome_corso || '').toLowerCase().includes(s));
 
+    if (countEl) countEl.textContent = String(filtered.length);
     listEl.innerHTML = filtered.map(courseItem).join('') || `<div class="muted">Nessun corso.</div>`;
   }
 
@@ -442,10 +447,35 @@ export async function bindCoursesEvents() {
   listEl.addEventListener('click', async (e) => {
     const edit = e.target.closest('button[data-edit]');
     if (edit) {
+      e.preventDefault();
+      e.stopPropagation();
       const courseId = Number(edit.getAttribute('data-edit'));
       const course = (allCourses ?? []).find(c => Number(c.id) === courseId);
       if (!course) return;
       await openCourseEditor(course);
+      return;
+    }
+    const delCourse = e.target.closest('button[data-delete]');
+    if (delCourse) {
+      e.preventDefault();
+      e.stopPropagation();
+      const courseId = Number(delCourse.getAttribute('data-delete'));
+      const ok = await confirmDialog({
+        title: 'Elimina corso',
+        message: 'Vuoi eliminare questo corso?',
+        details: 'L’operazione rimuove il corso dalla lista.',
+        confirmText: 'Elimina',
+        cancelText: 'Annulla',
+        danger: true,
+      });
+      if (!ok) return;
+      try {
+        await deleteCourse(courseId);
+        toast('Corso eliminato', 'ok');
+        await loadCourses();
+      } catch (err) {
+        toast(err?.message ?? 'Errore eliminazione', 'error');
+      }
       return;
     }
     // remove

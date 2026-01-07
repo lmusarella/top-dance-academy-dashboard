@@ -284,6 +284,11 @@ export async function upsertCourse(payload) {
   if (error) throw error;
   return data.id;
 }
+
+export async function deleteCourse(courseId) {
+  const { error } = await supabase.from('courses').delete().eq('id', courseId);
+  if (error) throw error;
+}
 export async function refreshCourseCount(courseId, countEl) {
   const { data, error } = await supabase
     .from('v_courses_with_counts')

@@ -144,7 +144,10 @@ export async function bindTessereEvents() {
   }
 
   async function loadPage() {
-    if (loading) return;
+    if (loading) {
+      setLoading(false);
+      return;
+    }
     loading = true;
     setStatus('Carico…');
     setLoading(true);
