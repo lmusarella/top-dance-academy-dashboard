@@ -76,10 +76,6 @@ export async function renderDashboard() {
             <option value="50">50</option>
           </select>
         </div>
-        <div class="loader" id="dashLoader" hidden>
-          <span class="spinner"></span>
-          <span>Carico dati…</span>
-        </div>
       </div>
 
       <div class="table-wrap">
@@ -115,7 +111,6 @@ export async function bindDashboardEvents() {
   const pageInfo = document.querySelector('#dashPageInfo');
   const prevBtn = document.querySelector('#dashPrev');
   const nextBtn = document.querySelector('#dashNext');
-  const loader = document.querySelector('#dashLoader');
   let kpiFilter = '';
   let rows = [];
   let shown = [];
@@ -126,9 +121,6 @@ export async function bindDashboardEvents() {
   function setCounts(totalAll, totalShown) {
     if (totAllEl) totAllEl.textContent = String(totalAll ?? 0);
     if (totShownEl) totShownEl.textContent = String(totalShown ?? 0);
-  }
-  function setLoading(isLoading) {
-    if (loader) loader.hidden = !isLoading;
   }
   function updatePagination() {
     const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
@@ -155,7 +147,6 @@ export async function bindDashboardEvents() {
 
   async function load() {
     body.innerHTML = `<tr><td colspan="4" class="muted">Carico dati…</td></tr>`;
-    setLoading(true);
     try {
       rows = await getDashboardRows(600);
       computeKpi(rows);
@@ -164,8 +155,6 @@ export async function bindDashboardEvents() {
     } catch (e) {
       toast(e?.message ?? 'Errore lettura dati', 'error');
       body.innerHTML = `<tr><td colspan="4" class="muted">Errore</td></tr>`;
-    } finally {
-      setLoading(false);
     }
   }
   function corsiToString(corsi) {

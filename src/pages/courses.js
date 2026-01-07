@@ -12,6 +12,7 @@ import {
 } from '../services/api.js';
 import { openModal, confirmDialog } from '../ui/modal.js';
 const cacheParticipants = new Map(); // courseId -> people[]
+const coursePagination = new Map(); // courseId -> { page, pageSize }
 
 export async function renderCourses() {
   return `
@@ -209,24 +210,47 @@ export async function bindCoursesEvents() {
       return;
     }
 
+    const state = coursePagination.get(courseId) ?? { page: 1, pageSize: 5 };
+    const totalPages = Math.max(1, Math.ceil(people.length / state.pageSize));
+    state.page = Math.min(state.page, totalPages);
+    coursePagination.set(courseId, state);
+
+    const start = (state.page - 1) * state.pageSize;
+    const slice = people.slice(start, start + state.pageSize);
+
     containerEl.innerHTML = `
+      <div class="table-controls">
+        <div class="pagination">
+          <button class="btn ghost" data-part-prev="${courseId}">←</button>
+          <div class="page-info">Pagina ${state.page} / ${totalPages}</div>
+          <button class="btn ghost" data-part-next="${courseId}">→</button>
+        </div>
+        <div class="page-size">
+          <span>Risultati per pagina</span>
+          <select data-part-size="${courseId}">
+            <option value="5" ${state.pageSize === 5 ? 'selected' : ''}>5</option>
+            <option value="10" ${state.pageSize === 10 ? 'selected' : ''}>10</option>
+            <option value="20" ${state.pageSize === 20 ? 'selected' : ''}>20</option>
+            <option value="50" ${state.pageSize === 50 ? 'selected' : ''}>50</option>
+          </select>
+        </div>
+      </div>
       <table class="table compact">
         <thead>
           <tr>
             <th>Nome</th>
-             <th>Note extra</th>
+            <th>Note extra</th>
             <th class="right">Azioni</th>
           </tr>
         </thead>
         <tbody>
-          ${people.map(p => `
+          ${slice.map(p => `
             <tr>
               <td>
                 <b>${esc(p.display_name)}</b>
                 <div class="meta">${p.ruolo ? esc(p.ruolo) : ''} • Quota: ${p.nr_quota ?? '—'}</div>
               </td>
-               <td>
-               
+              <td>
                 <div class="meta">${p.corso ? esc(p.corso) : ''}</div>
               </td>
               <td class="right">
@@ -252,6 +276,9 @@ export async function bindCoursesEvents() {
     try {
       const people = await listCourseParticipants(courseId);
       cacheParticipants.set(courseId, people);
+      if (!coursePagination.has(courseId)) {
+        coursePagination.set(courseId, { page: 1, pageSize: 5 });
+      }
       renderParticipants(containerEl, people, courseId);
       // In caso di disallineamenti, puoi refreshare count:
       // await refreshCourseCount(courseId, countEl);
@@ -425,6 +452,19 @@ export async function bindCoursesEvents() {
 
   // auto-load participants on open (prevede il toggle)
   listEl.addEventListener('click', async (e) => {
+    const sizeSelect = e.target.closest('select[data-part-size]');
+    if (sizeSelect) {
+      const courseId = Number(sizeSelect.getAttribute('data-part-size'));
+      const state = coursePagination.get(courseId) ?? { page: 1, pageSize: 5 };
+      state.pageSize = Number(sizeSelect.value) || 5;
+      state.page = 1;
+      coursePagination.set(courseId, state);
+      const details = sizeSelect.closest('details.acc-item');
+      const containerEl = details.querySelector('[data-participants]');
+      const people = cacheParticipants.get(courseId) ?? [];
+      renderParticipants(containerEl, people, courseId);
+      return;
+    }
     const summary = e.target.closest('summary.acc-sum');
     if (!summary) return;
 
@@ -445,6 +485,37 @@ export async function bindCoursesEvents() {
 
   // add/remove actions
   listEl.addEventListener('click', async (e) => {
+    const prev = e.target.closest('button[data-part-prev]');
+    if (prev) {
+      e.preventDefault();
+      e.stopPropagation();
+      const courseId = Number(prev.getAttribute('data-part-prev'));
+      const state = coursePagination.get(courseId);
+      if (!state) return;
+      state.page = Math.max(1, state.page - 1);
+      coursePagination.set(courseId, state);
+      const details = prev.closest('details.acc-item');
+      const containerEl = details.querySelector('[data-participants]');
+      const people = cacheParticipants.get(courseId) ?? [];
+      renderParticipants(containerEl, people, courseId);
+      return;
+    }
+    const next = e.target.closest('button[data-part-next]');
+    if (next) {
+      e.preventDefault();
+      e.stopPropagation();
+      const courseId = Number(next.getAttribute('data-part-next'));
+      const state = coursePagination.get(courseId);
+      if (!state) return;
+      const people = cacheParticipants.get(courseId) ?? [];
+      const totalPages = Math.max(1, Math.ceil(people.length / state.pageSize));
+      state.page = Math.min(totalPages, state.page + 1);
+      coursePagination.set(courseId, state);
+      const details = next.closest('details.acc-item');
+      const containerEl = details.querySelector('[data-participants]');
+      renderParticipants(containerEl, people, courseId);
+      return;
+    }
     const edit = e.target.closest('button[data-edit]');
     if (edit) {
       e.preventDefault();

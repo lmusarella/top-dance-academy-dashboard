@@ -53,10 +53,6 @@ export async function renderTessere() {
             <option value="50">50</option>
           </select>
         </div>
-        <div class="loader" id="tessereLoader" hidden>
-          <span class="spinner"></span>
-          <span>Carico dati…</span>
-        </div>
       </div>
 
       <div class="table-wrap">
@@ -91,7 +87,6 @@ export async function bindTessereEvents() {
   const pageInfo = document.querySelector('#tesserePageInfo');
   const prevBtn = document.querySelector('#tesserePrev');
   const nextBtn = document.querySelector('#tessereNext');
-  const loader = document.querySelector('#tessereLoader');
 
   const PAGE_DEFAULT = 20;
   let pageSize = Number(pageSizeSelect?.value || PAGE_DEFAULT);
@@ -107,9 +102,6 @@ export async function bindTessereEvents() {
 
   function updateCount() {
     if (countEl) countEl.textContent = String(shown);
-  }
-  function setLoading(isLoading) {
-    if (loader) loader.hidden = !isLoading;
   }
   function updatePagination() {
     const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
@@ -144,13 +136,9 @@ export async function bindTessereEvents() {
   }
 
   async function loadPage() {
-    if (loading) {
-      setLoading(false);
-      return;
-    }
+    if (loading) return;
     loading = true;
     setStatus('Carico…');
-    setLoading(true);
 
     try {
       const offset = (currentPage - 1) * pageSize;
@@ -168,13 +156,11 @@ export async function bindTessereEvents() {
       setStatus('Errore.');
     } finally {
       loading = false;
-      setLoading(false);
     }
   }
 
   async function resetAndLoad() {
     body.innerHTML = '';
-    setLoading(true);
     try {
       totalFiltered = await countPeople({ q });
       shown = totalFiltered;
@@ -184,8 +170,6 @@ export async function bindTessereEvents() {
     } catch (e) {
       toast(e?.message ?? 'Errore caricamento', 'error');
       setStatus('Errore.');
-    } finally {
-      setLoading(false);
     }
   }
 

@@ -92,10 +92,6 @@ export async function renderPeople() {
             <option value="50">50</option>
           </select>
         </div>
-        <div class="loader" id="peopleLoader" hidden>
-          <span class="spinner"></span>
-          <span>Carico dati…</span>
-        </div>
       </div>
 
         <div class="table-wrap">
@@ -134,7 +130,6 @@ export async function bindPeopleEvents() {
   const pageInfo = document.querySelector('#peoplePageInfo');
   const prevBtn = document.querySelector('#peoplePrev');
   const nextBtn = document.querySelector('#peopleNext');
-  const loader = document.querySelector('#peopleLoader');
   const coursesChips = document.querySelector('#coursesChips');
   const certFilter = document.querySelector('#certFilter');
   const btnCourses = document.querySelector('#btnCourses');
@@ -161,9 +156,6 @@ export async function bindPeopleEvents() {
   function setCounts({ totalAll = null, totalShown = null } = {}) {
     if (totalAll !== null) totAllEl.textContent = String(totalAll);
     if (totalShown !== null) totShownEl.textContent = String(totalShown);
-  }
-  function setLoading(isLoading) {
-    if (loader) loader.hidden = !isLoading;
   }
   function updatePagination() {
     const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
@@ -411,13 +403,9 @@ export async function bindPeopleEvents() {
   }
 
   async function loadPage() {
-    if (loading) {
-      setLoading(false);
-      return;
-    }
+    if (loading) return;
     loading = true;
     setStatus('Carico…');
-    setLoading(true);
 
     try {
       const offset = (currentPage - 1) * pageSize;
@@ -437,13 +425,11 @@ export async function bindPeopleEvents() {
       setStatus('Errore.');
     } finally {
       loading = false;
-      setLoading(false);
     }
   }
 
   async function resetAndLoad() {
     body.innerHTML = '';
-    setLoading(true);
     try {
       const totalAll = await countPeople({ q: '' });  // totale soci
       const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0;
@@ -456,8 +442,6 @@ export async function bindPeopleEvents() {
     } catch (e) {
       toast(e?.message ?? 'Errore caricamento', 'error');
       setStatus('Errore.');
-    } finally {
-      setLoading(false);
     }
   }
 
