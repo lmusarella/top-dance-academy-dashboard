@@ -1,7 +1,7 @@
 import {
   getPersonFull,
   upsertPerson, upsertContact, upsertMembership, upsertCertificate,
-  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses
+  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota
 } from '../services/api.js';
 
 import { toast } from '../ui/toast.js';
@@ -16,6 +16,11 @@ function escapeHtml(s) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+function formatConsent(value) {
+  if (value === true) return 'Sì';
+  if (value === false) return 'No';
+  return '—';
 }
 export async function renderPeople() {
   return `
@@ -33,48 +38,71 @@ export async function renderPeople() {
       </div>
 
     <div class="panel-top">
-  <div class="search-row">
-    <div class="search">
-      <input id="peopleQ"
-             placeholder="Cerca per nome, numero quota o numero tessera…" />
+      <div class="search-row">
+        <div class="search">
+          <input id="peopleQ"
+                 placeholder="Cerca per nome, numero quota o numero tessera…" />
+        </div>
+
+        <div class="cert-filter">
+          <select id="certFilter">
+            <option value="ALL">Tutti i certificati</option>
+            <option value="OK">🟢 Ok</option>
+            <option value="EXPIRED">🔴 Scaduti</option>
+            <option value="MISSING">❌ Assenti</option>
+            <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
+          </select>
+        </div>
+
+        <div class="cert-filter">
+          <select id="roleFilter">
+            <option value="ALL">Tutti i ruoli</option>
+            <option value="ALLIEVO">Allievo</option>
+            <option value="COLLABORATORE">Collaboratore</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="h2">
+        Risultati: <b id="totShown">—</b> / <b id="totAll">—</b>
+      </div>
     </div>
 
-    <div class="cert-filter">
-      <select id="certFilter">
-        <option value="ALL">Tutti i certificati</option>
-        <option value="OK">🟢 Ok</option>
-        <option value="EXPIRED">🔴 Scaduti</option>
-        <option value="MISSING">❌ Assenti</option>
-        <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
-      </select>
-    </div>
-  </div>
+    <div class="panel-top">
+      <div class="courses-filter-wrap">
+        <button class="btn primary" type="button" id="btnCourses">Seleziona corsi</button>
+        <div id="coursesChips" class="chips"></div>
+        <div id="coursesFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
+          <div class="muted" id="coursesFilterStatus">Carico corsi…</div>
+          <div id="coursesFilterList" class="stack" style="gap:6px; margin-top:8px"></div>
 
-  <div class="h2">
-    Risultati: <b id="totShown">—</b> / <b id="totAll">—</b>
-  </div>
-</div>
-
-
-        <div class="field">            
-              <div class="courses-filter-wrap">
-              <button class="btn primary" type="button" id="btnCourses">Seleziona corsi</button>
-              <div id="coursesChips" class="chips"></div>
-              <div id="coursesFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
-                <div class="muted" id="coursesFilterStatus">Carico corsi…</div>
-                <div id="coursesFilterList" class="stack" style="gap:6px; margin-top:8px"></div>
-
-                <div class="row" style="justify-content:space-between; margin-top:10px">
-                  <button class="btn ghost" type="button" id="btnCoursesAll">Tutti</button>
-                  <button class="btn ghost" type="button" id="btnCoursesNone">Nessuno</button>
-                  <button class="btn primary" type="button" id="btnCoursesApply">Applica</button>
-                </div>
-              </div>
-              </div>
-            </div>
+          <div class="row" style="justify-content:space-between; margin-top:10px">
+            <button class="btn ghost" type="button" id="btnCoursesAll">Tutti</button>
+            <button class="btn ghost" type="button" id="btnCoursesNone">Nessuno</button>
+            <button class="btn primary" type="button" id="btnCoursesApply">Applica</button>
           </div>
+        </div>
+      </div>
+    </div>
 
-      <div class="table-wrap">
+      <div class="table-controls">
+        <div class="pagination">
+          <button class="btn ghost" id="peoplePrev">←</button>
+          <div class="page-info" id="peoplePageInfo">Pagina 1 / 1</div>
+          <button class="btn ghost" id="peopleNext">→</button>
+        </div>
+        <div class="page-size">
+          <span>Risultati per pagina</span>
+          <select id="peoplePageSize">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+
+        <div class="table-wrap">
         <table class="table">
           <thead>
             <tr>
@@ -90,7 +118,6 @@ export async function renderPeople() {
 
         <div class="list-footer">
           <div id="peopleStatus" class="muted">Pronto.</div>
-          <div id="sentinel" style="height:1px;"></div>
         </div>
       </div>
     </section>
@@ -101,13 +128,17 @@ export async function renderPeople() {
 export async function bindPeopleEvents() {
   const body = document.querySelector('#peopleBody');
   const status = document.querySelector('#peopleStatus');
-  const sentinel = document.querySelector('#sentinel');
   const qInput = document.querySelector('#peopleQ');
   const btnNew = document.querySelector('#btnNew');
 
   const totAllEl = document.querySelector('#totAll');
   const totShownEl = document.querySelector('#totShown');
   const btnExport = document.querySelector('#btnExport');
+  const roleFilter = document.querySelector('#roleFilter');
+  const pageSizeSelect = document.querySelector('#peoplePageSize');
+  const pageInfo = document.querySelector('#peoplePageInfo');
+  const prevBtn = document.querySelector('#peoplePrev');
+  const nextBtn = document.querySelector('#peopleNext');
   const coursesChips = document.querySelector('#coursesChips');
   const certFilter = document.querySelector('#certFilter');
   const btnCourses = document.querySelector('#btnCourses');
@@ -120,20 +151,28 @@ export async function bindPeopleEvents() {
 
 
 
-  const PAGE = 60;
+  const PAGE_DEFAULT = 20;
+  let pageSize = Number(pageSizeSelect?.value || PAGE_DEFAULT);
+  let currentPage = 1;
+  let totalFiltered = 0;
   let certStatus = 'ALL';
+  let role = 'ALL';
   let selectedCourseIds = [];      // filtri attivi
   let pendingCourseIds = [];       // selezione “nel box” prima di Applica
   let allCoursesCache = null;
   let q = '';
-  let offset = 0;
   let loading = false;
-  let done = false;
 
   function setCounts({ totalAll = null, totalShown = null } = {}) {
-    console.log('totalShown', totalShown)
     if (totalAll !== null) totAllEl.textContent = String(totalAll);
     if (totalShown !== null) totShownEl.textContent = String(totalShown);
+  }
+  function updatePagination() {
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+    currentPage = Math.min(currentPage, totalPages);
+    if (pageInfo) pageInfo.textContent = `Pagina ${currentPage} / ${totalPages}`;
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
   }
   function chipsHtml(corsiJson) {
     const arr = Array.isArray(corsiJson) ? corsiJson : [];
@@ -231,6 +270,7 @@ export async function bindPeopleEvents() {
   }
   certFilter.addEventListener('change', async () => {
     certStatus = certFilter.value || 'ALL';
+    currentPage = 1;
     await resetAndLoad();
   });
   function corsiToString(corsi) {
@@ -247,7 +287,7 @@ export async function bindPeopleEvents() {
 
     const all = await fetchAllPaged(({ limit, offset }) =>
       listPeoplePaged({
-        q: q, limit, offset, certStatus,
+        q: q, limit, offset, certStatus, ruolo: role,
         courseIds: selectedCourseIds
       })
     );
@@ -321,6 +361,7 @@ export async function bindPeopleEvents() {
     selectedCourseIds = [...pendingCourseIds];
     setBtnCoursesLabel();
     coursesFilterBox.style.display = 'none';
+    currentPage = 1;
     await resetAndLoad();
     renderSelectedCourseChips();
   });
@@ -333,7 +374,7 @@ export async function bindPeopleEvents() {
     return `
       <tr>
         <td>
-        <b>${esc(r.display_name)}</b>
+          <b>${esc(r.display_name)}</b>
          <div class="meta">${r.ruolo ? esc(r.ruolo) : ''} • Quota: ${r.nr_quota ?? '—'} • Tessera: ${esc(r.nr_tessera ?? '—')}</div>
         </td>
         <td>
@@ -350,8 +391,8 @@ export async function bindPeopleEvents() {
           <div class="meta">
              ${r.email ? `<span>✉️ ${escapeHtml(r.email)}</span>` : `<span class="muted">✉️ —</span>`}
           </div>
-            <div class="meta">
-             ${r.consenso_whatsapp ? `<span>👍 Consenso Whatsapp` : `<span>👎 Consenso Whatsapp`}
+          <div class="meta">
+             <span>Consenso WhatsApp: ${formatConsent(r.consenso_whatsapp)}</span>
           </div>
           </td>
 
@@ -371,29 +412,27 @@ export async function bindPeopleEvents() {
     status.textContent = msg;
   }
 
-  async function loadNext() {
-    if (loading || done) return;
+  async function loadPage() {
+    if (loading) return;
     loading = true;
     setStatus('Carico…');
 
     try {
+      const offset = (currentPage - 1) * pageSize;
       const rows = await listPeoplePaged({
-        q, limit: PAGE, offset, certStatus,
+        q, limit: pageSize, offset, certStatus, ruolo: role,
         courseIds: selectedCourseIds
       });
       if (rows.length === 0) {
-        done = true;
-        setStatus(offset === 0 ? 'Nessun risultato.' : 'Fine lista.');
+        body.innerHTML = '';
+        setStatus('Nessun risultato.');
       } else {
-        body.insertAdjacentHTML('beforeend', rows.map(rowHtml).join(''));
-        offset += rows.length;
-        setStatus(`Mostrati: ${offset}${rows.length < PAGE ? ' • Fine lista.' : ''}`);
-        if (rows.length < PAGE) done = true;
+        body.innerHTML = rows.map(rowHtml).join('');
+        setStatus(`Pagina ${currentPage}`);
       }
     } catch (e) {
       toast(e?.message ?? 'Errore caricamento', 'error');
       setStatus('Errore.');
-      done = true;
     } finally {
       loading = false;
     }
@@ -401,29 +440,20 @@ export async function bindPeopleEvents() {
 
   async function resetAndLoad() {
     body.innerHTML = '';
-    offset = 0;
-    done = false;
-    await loadNext();
-
-    const totalAll = await countPeople({ q: '' });  // totale soci
-    setCounts({ totalAll, totalShown: totalAll });
-
-    const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0;
-    if (hasFilters) {
-      const totalFiltered = await countPeople({ q, certStatus, courseIds: selectedCourseIds });
-      setCounts({ totalShown: totalFiltered });
-      // volendo puoi mostrare anche "Risultati: X" come totale filtrato atteso
-      // qui uso lo stesso campo totShown solo per "caricati finora"
-      // se vuoi entrambi: aggiungiamo un terzo contatore "Totale ricerca"
+    try {
+      const totalAll = await countPeople({ q: '', ruolo: role });  // totale soci
+      const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0 || role !== 'ALL';
+      totalFiltered = hasFilters
+        ? await countPeople({ q, certStatus, courseIds: selectedCourseIds, ruolo: role })
+        : totalAll;
+      setCounts({ totalAll, totalShown: totalFiltered });
+      updatePagination();
+      await loadPage();
+    } catch (e) {
+      toast(e?.message ?? 'Errore caricamento', 'error');
+      setStatus('Errore.');
     }
   }
-
-  // Infinite scroll con IntersectionObserver (ottimizzato, zero scroll handler)
-  const io = new IntersectionObserver((entries) => {
-    if (entries.some(e => e.isIntersecting)) loadNext();
-  }, { root: null, rootMargin: '600px 0px', threshold: 0 });
-
-  io.observe(sentinel);
 
   // Debounce ricerca
   let t = null;
@@ -436,10 +466,32 @@ export async function bindPeopleEvents() {
 
   const onSearch = debounce(async () => {
     q = (qInput.value || '').trim();
+    currentPage = 1;
     await resetAndLoad();
   }, 250);
 
   qInput.addEventListener('input', onSearch);
+  roleFilter?.addEventListener('change', async () => {
+    role = roleFilter.value || 'ALL';
+    currentPage = 1;
+    await resetAndLoad();
+  });
+  pageSizeSelect?.addEventListener('change', async () => {
+    pageSize = Number(pageSizeSelect.value) || PAGE_DEFAULT;
+    currentPage = 1;
+    updatePagination();
+    await loadPage();
+  });
+  prevBtn?.addEventListener('click', async () => {
+    currentPage = Math.max(1, currentPage - 1);
+    updatePagination();
+    await loadPage();
+  });
+  nextBtn?.addEventListener('click', async () => {
+    currentPage += 1;
+    updatePagination();
+    await loadPage();
+  });
 
   btnNew.addEventListener('click', async () => {
     await openPersonEditor({ personId: null, onSaved: resetAndLoad });
@@ -547,8 +599,8 @@ export async function openPersonEditor({ personId, onSaved }) {
       <span>Consenso WhatsApp</span>
       <select name="consenso_whatsapp">
         <option value="">—</option>
-        <option value="true">true</option>
-        <option value="false">false</option>
+        <option value="true">Sì</option>
+        <option value="false">No</option>
       </select>
     </label>
 
@@ -673,6 +725,10 @@ export async function openPersonEditor({ personId, onSaved }) {
     try {
       const allCourses = await listCourses({ onlyActive: true });
       renderCoursesOptions(allCourses, []);
+      const maxQuota = await getMaxQuota();
+      const nextQuota = Number.isFinite(Number(maxQuota)) ? Number(maxQuota) + 1 : '';
+      const quotaField = form.querySelector('[name="nr_quota"]');
+      if (quotaField && nextQuota !== '') quotaField.value = String(nextQuota);
     } catch (e) {
       coursesBox.innerHTML = `<span class="muted">Errore caricamento corsi</span>`;
     }

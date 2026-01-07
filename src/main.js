@@ -6,6 +6,7 @@ import { renderLogin, bindLoginEvents } from './pages/login.js';
 import { renderDashboard, bindDashboardEvents } from './pages/dashboard.js';
 import { renderPeople, bindPeopleEvents } from './pages/people.js';
 import { renderCourses, bindCoursesEvents } from './pages/courses.js';
+import { renderTessere, bindTessereEvents } from './pages/tessere.js';
 
 const app = document.querySelector('#app');
 
@@ -13,7 +14,7 @@ const routes = {
   '#/login': { render: renderLogin, bind: bindLoginEvents, auth: false },
   '#/dashboard': { render: renderDashboard, bind: bindDashboardEvents, auth: true },
   '#/people': { render: renderPeople, bind: bindPeopleEvents, auth: true },
- 
+  '#/tessere': { render: renderTessere, bind: bindTessereEvents, auth: true },
   '#/courses': { render: renderCourses, bind: bindCoursesEvents, auth: true }
 };
 

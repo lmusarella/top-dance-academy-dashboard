@@ -72,6 +72,17 @@ export async function upsertCertificate(personId, payload) {
   if (error) throw error;
 }
 
+export async function getMaxQuota() {
+  const { data, error } = await supabase
+    .from('people')
+    .select('nr_quota')
+    .order('nr_quota', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.nr_quota ?? null;
+}
+
 export async function deletePerson(personId) {
   // cascade cancella contact/membership/certificate
   const { error } = await supabase.from('people').delete().eq('id', personId);
@@ -133,11 +144,53 @@ export async function listPeoplePaged({
   return data ?? [];
 }
 
+export async function listPeopleByQuotaPaged({
+  q = '',
+  limit = 60,
+  offset = 0,
+  ruolo = ''
+} = {}) {
+  let query = supabase
+    .from('v_people_search')
+    .select('*')
+    .order('nr_quota', { ascending: true, nullsFirst: false })
+    .range(offset, offset + limit - 1);
+
+  if (ruolo && ruolo !== 'ALL') {
+    query = query.eq('ruolo', ruolo);
+  }
+
+  const s = String(q ?? '').trim();
+  if (!s) {
+    const { data, error } = await query;
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  const isNumeric = /^\d+$/.test(s);
+  const sNorm = s.replace(/\s+/g, ' ');
+
+  if (isNumeric) {
+    query = query.or(
+      `nr_quota.eq.${Number(sNorm)},nr_tessera.ilike.%${sNorm}%,display_name_norm.ilike.%${sNorm}%`
+    );
+  } else {
+    query = query.or(
+      `display_name_norm.ilike.%${sNorm}%,nr_tessera.ilike.%${sNorm}%`
+    );
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
 
 export async function countPeople({
   q = '',
   certStatus = 'ALL',
-  courseIds = []
+  courseIds = [],
+  ruolo = ''
 } = {}) {
   let query = supabase
     .from('v_people_search')
@@ -153,6 +206,10 @@ export async function countPeople({
 
   const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
   if (ids.length) query = query.overlaps('course_ids', ids);
+
+  if (ruolo && ruolo !== 'ALL') {
+    query = query.eq('ruolo', ruolo);
+  }
 
   const s = String(q ?? '').trim();
   if (s) {
@@ -237,6 +294,21 @@ export async function listCourseParticipants(courseId) {
     .sort((a, b) =>
       (a.display_name || '').localeCompare(b.display_name || '', 'it', { sensitivity: 'base' })
     );
+}
+
+export async function upsertCourse(payload) {
+  const { data, error } = await supabase
+    .from('courses')
+    .upsert(payload)
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function deleteCourse(courseId) {
+  const { error } = await supabase.from('courses').delete().eq('id', courseId);
+  if (error) throw error;
 }
 export async function refreshCourseCount(courseId, countEl) {
   const { data, error } = await supabase
