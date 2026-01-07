@@ -137,9 +137,9 @@ export async function bindDashboardEvents() {
   function matchKpi(r) {
     const d = r?.giorni_rimanenti;
     if (kpiFilter === 'MISSING') return d == null;
-    if (kpiFilter === 'EXPIRED') return d < 0;
-    if (kpiFilter === 'DUE7') return d >= 0 && d <= 7;
-    if (kpiFilter === 'DUE30') return d >= 0 && d <= 30;
+    if (kpiFilter === 'EXPIRED') return d !== null && d < 0;
+    if (kpiFilter === 'DUE7') return d !== null && d >= 0 && d <= 7;
+    if (kpiFilter === 'DUE30') return d !== null && d >= 0 && d <= 30;
     return true; // nessun filtro KPI
   }
 
@@ -202,8 +202,8 @@ kpis?.addEventListener('click', (e) => {
     const due30 = days.filter(d => d >= 0 && d <= 30).length;
 
     const cards = kpis.querySelectorAll('.kpi .v');
-    cards[0].textContent = String(expired);
-    cards[1].textContent = String(missing);
+    cards[0].textContent = String(missing);
+    cards[1].textContent = String(expired);
     cards[2].textContent = String(due7);
     cards[3].textContent = String(due30);
   }

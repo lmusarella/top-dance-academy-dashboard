@@ -93,7 +93,8 @@ export async function listPeoplePaged({
   q = '',
   limit = 50,
   offset = 0,
-  certStatus = 'ALL',     // ALL | OK | EXPIRED | MISSING | EXPIRED_OR_MISSING
+  certStatus = 'ALL',
+  ruolo = 'ALL',   // ALL | OK | EXPIRED | MISSING | EXPIRED_OR_MISSING
   courseIds = []          // array di int
 } = {}) {
   let query = supabase
@@ -112,6 +113,13 @@ export async function listPeoplePaged({
       query = query.eq('cert_status', certStatus);
     }
   }
+
+    // --- filtri ruolo ---
+  if (ruolo && ruolo !== 'ALL') {
+    query = query.eq('ruolo', ruolo);   
+  }
+
+  
 
   // --- filtri corsi (match ANY) ---
   const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
@@ -192,7 +200,7 @@ export async function countPeople({
   q = '',
   certStatus = 'ALL',
   courseIds = [],
-  ruolo = ''
+  ruolo = 'ALL'
 } = {}) {
   let query = supabase
     .from('v_people_search')

@@ -29,7 +29,7 @@ export async function renderPeople() {
       <div class="panel-head">
         <div>
           <div class="h1">Soci</div>
-               
+                 <div class="h2">Ordinati in ordine alfabetico</div>
         </div>
         <div class="panel-actions">       
           <button class="btn primary" id="btnNew">Nuovo Socio</button>       
@@ -443,7 +443,7 @@ export async function bindPeopleEvents() {
   async function resetAndLoad() {
     body.innerHTML = '';
     try {
-      const totalAll = await countPeople({ q: '', ruolo: role });  // totale soci
+      const totalAll = await countPeople({ q: '' });  // totale soci
       const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0 || role !== 'ALL';
       totalFiltered = hasFilters
         ? await countPeople({ q, certStatus, courseIds: selectedCourseIds, ruolo: role })
@@ -473,11 +473,13 @@ export async function bindPeopleEvents() {
   }, 250);
 
   qInput.addEventListener('input', onSearch);
+
   roleFilter?.addEventListener('change', async () => {
     role = roleFilter.value || 'ALL';
     currentPage = 1;
     await resetAndLoad();
   });
+  
   pageSizeSelect?.addEventListener('change', async () => {
     pageSize = Number(pageSizeSelect.value) || PAGE_DEFAULT;
     currentPage = 1;
