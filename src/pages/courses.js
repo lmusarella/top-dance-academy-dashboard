@@ -123,24 +123,29 @@ export async function bindCoursesEvents() {
   async function openCourseEditor(course = null) {
     const isEdit = !!course;
     const form = document.createElement('form');
-    form.className = 'form inline';
+    form.className = 'form grid-rows';
     form.innerHTML = `
-      <label class="field">
+
+     <div class="form-row cols-3">
+     <label class="field">
         <span>Nome corso*</span>
         <input name="nome_corso" required placeholder="Nome corso" />
       </label>
       <label class="field size-md">
-        <span>Tipo corso</span>
+        <span>Tipo corso*</span>
         <input name="tipo_corso" required placeholder="BALLO / FITNESS / ARTI_MARZIALI" />
       </label>
+       <label class="field">
+        <span>Istruttori</span>
+        <input name="istruttori" placeholder="Nomi istruttori" />
+      </label>
+     </div>
+      
       <label class="field">
         <span>Descrizione</span>
         <input name="descrizione" placeholder="Descrizione breve" />
       </label>
-      <label class="field size-md">
-        <span>Istruttori</span>
-        <input name="istruttori" placeholder="Nomi istruttori" />
-      </label>
+     
       <label class="field size-xs">
         <span>Attivo</span>
         <select name="is_active">

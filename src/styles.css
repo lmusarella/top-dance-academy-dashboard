@@ -291,6 +291,18 @@ a{ color:inherit; text-decoration:none; }
 .form{ display:grid; gap: 12px; }
 .form.grid2{ grid-template-columns: 1fr 1fr; }
 .form.grid2 .span2{ grid-column: 1 / -1; }
+.form.grid-rows{
+  display:flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.form.grid-rows .form-row{
+  display:grid;
+  gap: 12px;
+}
+.form.grid-rows .form-row.cols-1{ grid-template-columns: 1fr; }
+.form.grid-rows .form-row.cols-2{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form.grid-rows .form-row.cols-3{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .form.inline{
   display:flex;
   flex-wrap: wrap;
@@ -380,6 +392,7 @@ a{ color:inherit; text-decoration:none; }
   .topbar{ margin: 12px; }
   .kpis{ grid-template-columns: 1fr; }
   .form.grid2{ grid-template-columns: 1fr; }
+  .form.grid-rows .form-row{ grid-template-columns: 1fr; }
   .actions{ grid-template-columns: 1fr; }
 }
 .list-footer{
