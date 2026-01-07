@@ -165,7 +165,7 @@ export async function bindTessereEvents() {
               <span>Codice fiscale</span>
               <input name="codice_fiscale" placeholder="..." />
             </label>
-            <label class="field size-xs">
+            <label class="field size-sm">
               <span>Modulo Safeguarding</span>
               <select name="safeguarding">       
                 <option value="true">🟢 Ok</option>
