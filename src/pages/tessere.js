@@ -67,7 +67,7 @@ export async function renderTessere() {
               <th>Socio</th>
               <th>Tessera</th>
               <th>Note</th>
-              <th>Codice fiscale</th>
+          
               <th>Modulo Safeguarding</th>
               <th class="right">Azioni</th>
             </tr>
@@ -130,12 +130,11 @@ export async function bindTessereEvents() {
         <td><b>${r.nr_quota ?? '—'}</b></td>
         <td>
           <b>${esc(r.display_name)}</b>
-          <div class="meta">${r.ruolo ? esc(r.ruolo) : ''}</div>
+          <div class="meta">${r.ruolo ? esc(r.ruolo) : ''} • CF: ${r.codice_fiscale ?? '—'}</div>
         </td>
         <td>${esc(r.nr_tessera ?? '—')}</td>
         <td>${esc(!r.note || r.note == '' ? '—' : r.note)}</td>
-        <td>${esc(r.codice_fiscale ?? '—')}</td>
-        <td>${esc(r.safeguarding ? 'Sì': 'No')}</td>
+        <td>${esc(r.safeguarding ? '🟢': '❌')}</td>
         <td class="right">
           <button class="icon-btn sm" data-edit="${r.person_id ?? r.id ?? ''}" title="Modifica">✎</button>
         </td>
