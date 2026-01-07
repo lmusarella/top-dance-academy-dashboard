@@ -306,7 +306,7 @@ export async function bindTessereEvents() {
     await loadPage();
   });
   body.addEventListener('click', async (e) => {
-     console.log('CLICK TESSERE', e.target);
+    
     const editBtn = e.target.closest('button[data-edit]');
     if (!editBtn) return;
     const personId = editBtn.getAttribute('data-edit');
@@ -316,7 +316,7 @@ export async function bindTessereEvents() {
       return;
     }
     try {
-        console.log('openTesseraEditor', row);
+      
       await openTesseraEditor(row);
     } catch (err) {
       toast(err?.message ?? 'Errore apertura modifica', 'error');
