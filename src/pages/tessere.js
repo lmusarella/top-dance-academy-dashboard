@@ -150,6 +150,7 @@ export async function bindTessereEvents() {
   }
 
   async function openTesseraEditor(row) {
+   
     const form = document.createElement('form');
     form.className = 'form';
     form.innerHTML = `
@@ -305,16 +306,17 @@ export async function bindTessereEvents() {
     await loadPage();
   });
   body.addEventListener('click', async (e) => {
+     console.log('CLICK TESSERE', e.target);
     const editBtn = e.target.closest('button[data-edit]');
     if (!editBtn) return;
-    const personId = Number(editBtn.getAttribute('data-edit'));
-    if (!Number.isFinite(personId)) return;
-    const row = (cacheRows ?? []).find(r => Number(r.person_id ?? r.id) === personId);
+    const personId = editBtn.getAttribute('data-edit');
+    const row = (cacheRows ?? []).find(r => (r.person_id ?? r.id) === personId);
     if (!row) {
       toast('Impossibile trovare la tessera selezionata', 'error');
       return;
     }
     try {
+        console.log('openTesseraEditor', row);
       await openTesseraEditor(row);
     } catch (err) {
       toast(err?.message ?? 'Errore apertura modifica', 'error');
