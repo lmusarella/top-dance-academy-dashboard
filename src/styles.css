@@ -527,7 +527,7 @@ select option{
 
 /* --- COURSES FILTER PANEL --- */
 #coursesFilterBox{
-  width: 100%;
+  width: 400px;
   max-height: 340px;
   overflow: auto;
    background: rgba(10, 14, 20, 0.96) !important;
