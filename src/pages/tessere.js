@@ -32,8 +32,17 @@ export async function renderTessere() {
       </div>
 
       <div class="panel-top">
-        <div class="search">
-          <input id="tessereQ" placeholder="Cerca per nome, numero quota o numero tessera…" />
+        <div class="search-row">
+          <div class="search">
+            <input id="tessereQ" placeholder="Cerca per nome, numero quota o numero tessera…" />
+          </div>
+          <div class="cert-filter">
+            <select id="tessereRoleFilter">
+              <option value="ALL">Tutti i ruoli</option>
+              <option value="ALLIEVO">Allievo</option>
+              <option value="COLLABORATORE">Collaboratore</option>
+            </select>
+          </div>
         </div>
         <div class="meta">Mostrati: <b id="tessereCount">0</b></div>
       </div>
@@ -63,6 +72,7 @@ export async function renderTessere() {
               <th>Socio</th>
               <th>Tessera</th>
               <th>Contatti</th>
+              <th>Codice fiscale</th>
             </tr>
           </thead>
           <tbody id="tessereBody"></tbody>
@@ -81,6 +91,7 @@ export async function bindTessereEvents() {
   const body = document.querySelector('#tessereBody');
   const status = document.querySelector('#tessereStatus');
   const qInput = document.querySelector('#tessereQ');
+  const roleFilter = document.querySelector('#tessereRoleFilter');
   const countEl = document.querySelector('#tessereCount');
   const btnExport = document.querySelector('#btnExportTessere');
   const pageSizeSelect = document.querySelector('#tesserePageSize');
@@ -93,6 +104,7 @@ export async function bindTessereEvents() {
   let currentPage = 1;
   let totalFiltered = 0;
   let q = '';
+  let role = 'ALL';
   let loading = false;
   let shown = 0;
 
@@ -131,6 +143,7 @@ export async function bindTessereEvents() {
             <span>Consenso WhatsApp: ${formatConsent(r.consenso_whatsapp)}</span>
           </div>
         </td>
+        <td>${esc(r.codice_fiscale ?? '—')}</td>
       </tr>
     `;
   }
@@ -142,7 +155,7 @@ export async function bindTessereEvents() {
 
     try {
       const offset = (currentPage - 1) * pageSize;
-      const rows = await listPeopleByQuotaPaged({ q, limit: pageSize, offset });
+      const rows = await listPeopleByQuotaPaged({ q, limit: pageSize, offset, ruolo: role });
       if (rows.length === 0) {
         body.innerHTML = '';
         setStatus('Nessun risultato.');
@@ -162,7 +175,7 @@ export async function bindTessereEvents() {
   async function resetAndLoad() {
     body.innerHTML = '';
     try {
-      totalFiltered = await countPeople({ q });
+      totalFiltered = await countPeople({ q, ruolo: role });
       shown = totalFiltered;
       updateCount();
       updatePagination();
@@ -188,6 +201,11 @@ export async function bindTessereEvents() {
   }, 250);
 
   qInput.addEventListener('input', onSearch);
+  roleFilter?.addEventListener('change', async () => {
+    role = roleFilter.value || 'ALL';
+    currentPage = 1;
+    await resetAndLoad();
+  });
   pageSizeSelect?.addEventListener('change', async () => {
     pageSize = Number(pageSizeSelect.value) || PAGE_DEFAULT;
     currentPage = 1;
@@ -207,7 +225,7 @@ export async function bindTessereEvents() {
   btnExport?.addEventListener('click', async () => {
     try {
       const all = await fetchAllPaged(({ limit, offset }) =>
-        listPeopleByQuotaPaged({ q, limit, offset })
+        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role })
       );
 
       const EXPORT_COLS = [
@@ -218,6 +236,7 @@ export async function bindTessereEvents() {
         'ruolo',
         'telefono',
         'email',
+        'codice_fiscale',
         'consenso_whatsapp',
       ];
 

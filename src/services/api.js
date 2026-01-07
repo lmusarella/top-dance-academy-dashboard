@@ -136,13 +136,18 @@ export async function listPeoplePaged({
 export async function listPeopleByQuotaPaged({
   q = '',
   limit = 60,
-  offset = 0
+  offset = 0,
+  ruolo = ''
 } = {}) {
   let query = supabase
     .from('v_people_search')
     .select('*')
     .order('nr_quota', { ascending: true, nullsFirst: false })
     .range(offset, offset + limit - 1);
+
+  if (ruolo && ruolo !== 'ALL') {
+    query = query.eq('ruolo', ruolo);
+  }
 
   const s = String(q ?? '').trim();
   if (!s) {
@@ -173,7 +178,8 @@ export async function listPeopleByQuotaPaged({
 export async function countPeople({
   q = '',
   certStatus = 'ALL',
-  courseIds = []
+  courseIds = [],
+  ruolo = ''
 } = {}) {
   let query = supabase
     .from('v_people_search')
@@ -189,6 +195,10 @@ export async function countPeople({
 
   const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
   if (ids.length) query = query.overlaps('course_ids', ids);
+
+  if (ruolo && ruolo !== 'ALL') {
+    query = query.eq('ruolo', ruolo);
+  }
 
   const s = String(q ?? '').trim();
   if (s) {

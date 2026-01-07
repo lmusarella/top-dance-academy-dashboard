@@ -53,6 +53,14 @@ export async function renderPeople() {
             <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
           </select>
         </div>
+
+        <div class="cert-filter">
+          <select id="roleFilter">
+            <option value="ALL">Tutti i ruoli</option>
+            <option value="ALLIEVO">Allievo</option>
+            <option value="COLLABORATORE">Collaboratore</option>
+          </select>
+        </div>
       </div>
 
       <div class="h2">
@@ -101,6 +109,7 @@ export async function renderPeople() {
               <th>Socio</th>
               <th>Certificato</th>
               <th>Contatti</th>
+              <th>Codice fiscale</th>
               <th>Corsi</th>          
               <th class="right">Azioni</th>
             </tr>
@@ -126,6 +135,7 @@ export async function bindPeopleEvents() {
   const totAllEl = document.querySelector('#totAll');
   const totShownEl = document.querySelector('#totShown');
   const btnExport = document.querySelector('#btnExport');
+  const roleFilter = document.querySelector('#roleFilter');
   const pageSizeSelect = document.querySelector('#peoplePageSize');
   const pageInfo = document.querySelector('#peoplePageInfo');
   const prevBtn = document.querySelector('#peoplePrev');
@@ -147,6 +157,7 @@ export async function bindPeopleEvents() {
   let currentPage = 1;
   let totalFiltered = 0;
   let certStatus = 'ALL';
+  let role = 'ALL';
   let selectedCourseIds = [];      // filtri attivi
   let pendingCourseIds = [];       // selezione “nel box” prima di Applica
   let allCoursesCache = null;
@@ -277,7 +288,7 @@ export async function bindPeopleEvents() {
 
     const all = await fetchAllPaged(({ limit, offset }) =>
       listPeoplePaged({
-        q: q, limit, offset, certStatus,
+        q: q, limit, offset, certStatus, ruolo: role,
         courseIds: selectedCourseIds
       })
     );
@@ -293,6 +304,7 @@ export async function bindPeopleEvents() {
       'scadenza_fmt',
       'telefono',
       'email',
+      'codice_fiscale',
       'consenso_whatsapp',
       'corsi',
       'corso', // la mettiamo noi come stringa
@@ -386,6 +398,8 @@ export async function bindPeopleEvents() {
           </div>
           </td>
 
+        <td>${escapeHtml(r.codice_fiscale ?? '—')}</td>
+
         <td>${chipsHtml(r.corsi)}</td>
        
         <td class="right actions-cell">
@@ -410,7 +424,7 @@ export async function bindPeopleEvents() {
     try {
       const offset = (currentPage - 1) * pageSize;
       const rows = await listPeoplePaged({
-        q, limit: pageSize, offset, certStatus,
+        q, limit: pageSize, offset, certStatus, ruolo: role,
         courseIds: selectedCourseIds
       });
       if (rows.length === 0) {
@@ -431,10 +445,10 @@ export async function bindPeopleEvents() {
   async function resetAndLoad() {
     body.innerHTML = '';
     try {
-      const totalAll = await countPeople({ q: '' });  // totale soci
-      const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0;
+      const totalAll = await countPeople({ q: '', ruolo: role });  // totale soci
+      const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0 || role !== 'ALL';
       totalFiltered = hasFilters
-        ? await countPeople({ q, certStatus, courseIds: selectedCourseIds })
+        ? await countPeople({ q, certStatus, courseIds: selectedCourseIds, ruolo: role })
         : totalAll;
       setCounts({ totalAll, totalShown: totalFiltered });
       updatePagination();
@@ -461,6 +475,11 @@ export async function bindPeopleEvents() {
   }, 250);
 
   qInput.addEventListener('input', onSearch);
+  roleFilter?.addEventListener('change', async () => {
+    role = roleFilter.value || 'ALL';
+    currentPage = 1;
+    await resetAndLoad();
+  });
   pageSizeSelect?.addEventListener('change', async () => {
     pageSize = Number(pageSizeSelect.value) || PAGE_DEFAULT;
     currentPage = 1;
