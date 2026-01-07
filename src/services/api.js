@@ -158,7 +158,8 @@ export async function listPeopleByQuotaPaged({
   q = '',
   limit = 60,
   offset = 0,
-  ruolo = ''
+  ruolo = '',
+  safeguarding = 'ALL'
 } = {}) {
   let query = supabase
     .from('v_people_search')
@@ -168,6 +169,13 @@ export async function listPeopleByQuotaPaged({
 
   if (ruolo && ruolo !== 'ALL') {
     query = query.eq('ruolo', ruolo);
+  }
+  if (safeguarding && safeguarding !== 'ALL') {
+    if (safeguarding === 'OK') {
+      query = query.eq('safeguarding', true);
+    } else if (safeguarding === 'ASSENTE') {
+      query = query.or('safeguarding.is.null,safeguarding.eq.false');
+    }
   }
 
   const s = String(q ?? '').trim();
@@ -200,7 +208,8 @@ export async function countPeople({
   q = '',
   certStatus = 'ALL',
   courseIds = [],
-  ruolo = 'ALL'
+  ruolo = 'ALL',
+  safeguarding = 'ALL'
 } = {}) {
   let query = supabase
     .from('v_people_search')
@@ -221,6 +230,13 @@ export async function countPeople({
 
   if (ruolo && ruolo !== 'ALL') {
     query = query.eq('ruolo', ruolo);
+  }
+  if (safeguarding && safeguarding !== 'ALL') {
+    if (safeguarding === 'OK') {
+      query = query.eq('safeguarding', true);
+    } else if (safeguarding === 'ASSENTE') {
+      query = query.or('safeguarding.is.null,safeguarding.eq.false');
+    }
   }
 
   const s = String(q ?? '').trim();

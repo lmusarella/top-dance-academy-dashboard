@@ -38,6 +38,13 @@ export async function renderTessere() {
               <option value="COLLABORATORE">Collaboratore</option>
             </select>
           </div>
+          <div class="cert-filter">
+            <select id="tessereSafeguardingFilter">
+              <option value="ALL">Modulo Safeguarding: tutti</option>
+              <option value="OK">Modulo Safeguarding: ok</option>
+              <option value="ASSENTE">Modulo Safeguarding: assente</option>
+            </select>
+          </div>
         </div>
         <div class="meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
       </div>
@@ -89,6 +96,7 @@ export async function bindTessereEvents() {
   const status = document.querySelector('#tessereStatus');
   const qInput = document.querySelector('#tessereQ');
   const roleFilter = document.querySelector('#tessereRoleFilter');
+  const safeguardingFilter = document.querySelector('#tessereSafeguardingFilter');
   const shownEl = document.querySelector('#tessereShown');
   const totalEl = document.querySelector('#tessereTotal');
   const btnExport = document.querySelector('#btnExportTessere');
@@ -104,6 +112,7 @@ export async function bindTessereEvents() {
   let totalAll = 0;
   let q = '';
   let role = 'ALL';
+  let safeguarding = 'ALL';
   let loading = false;
   let cacheRows = [];
   let shown = 0;
@@ -145,7 +154,7 @@ export async function bindTessereEvents() {
   async function openTesseraEditor(row) {
 
     const form = document.createElement('form');
-    form.className = 'form';
+    form.className = 'form inline';
     form.innerHTML = `
       <label class="field size-sm">
         <span>Nr tessera</span>
@@ -228,7 +237,13 @@ export async function bindTessereEvents() {
 
     try {
       const offset = (currentPage - 1) * pageSize;
-      const rows = await listPeopleByQuotaPaged({ q, limit: pageSize, offset, ruolo: role });
+      const rows = await listPeopleByQuotaPaged({
+        q,
+        limit: pageSize,
+        offset,
+        ruolo: role,
+        safeguarding
+      });
       if (rows.length === 0) {
         body.innerHTML = '';
         setStatus('Nessun risultato.');
@@ -252,8 +267,8 @@ export async function bindTessereEvents() {
   async function resetAndLoad() {
     body.innerHTML = '';
     try {
-      totalAll = await countPeople({ q: '', ruolo: 'ALL' });
-      totalFiltered = await countPeople({ q, ruolo: role });
+      totalAll = await countPeople({ q: '', ruolo: 'ALL', safeguarding: 'ALL' });
+      totalFiltered = await countPeople({ q, ruolo: role, safeguarding });
       shown = totalFiltered;
       updateCount(totalAll);
       updatePagination();
@@ -281,6 +296,11 @@ export async function bindTessereEvents() {
   qInput.addEventListener('input', onSearch);
   roleFilter?.addEventListener('change', async () => {
     role = roleFilter.value || 'ALL';
+    currentPage = 1;
+    await resetAndLoad();
+  });
+  safeguardingFilter?.addEventListener('change', async () => {
+    safeguarding = safeguardingFilter.value || 'ALL';
     currentPage = 1;
     await resetAndLoad();
   });
@@ -320,7 +340,7 @@ export async function bindTessereEvents() {
   btnExport?.addEventListener('click', async () => {
     try {
       const all = await fetchAllPaged(({ limit, offset }) =>
-        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role })
+        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding })
       );
 
       const EXPORT_COLS = [
