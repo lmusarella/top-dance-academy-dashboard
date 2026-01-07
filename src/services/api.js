@@ -274,6 +274,16 @@ export async function listCourseParticipants(courseId) {
       (a.display_name || '').localeCompare(b.display_name || '', 'it', { sensitivity: 'base' })
     );
 }
+
+export async function upsertCourse(payload) {
+  const { data, error } = await supabase
+    .from('courses')
+    .upsert(payload)
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
 export async function refreshCourseCount(courseId, countEl) {
   const { data, error } = await supabase
     .from('v_courses_with_counts')

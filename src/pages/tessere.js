@@ -171,11 +171,19 @@ export async function bindTessereEvents() {
 
   async function resetAndLoad() {
     body.innerHTML = '';
-    totalFiltered = await countPeople({ q });
-    shown = totalFiltered;
-    updateCount();
-    updatePagination();
-    await loadPage();
+    setLoading(true);
+    try {
+      totalFiltered = await countPeople({ q });
+      shown = totalFiltered;
+      updateCount();
+      updatePagination();
+      await loadPage();
+    } catch (e) {
+      toast(e?.message ?? 'Errore caricamento', 'error');
+      setStatus('Errore.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   let t = null;

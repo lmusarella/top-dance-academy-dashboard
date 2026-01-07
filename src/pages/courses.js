@@ -6,9 +6,10 @@ import {
   listCourseParticipants,
   searchPeople,
   addPeopleToCourse,
-  removePersonFromCourse
+  removePersonFromCourse,
+  upsertCourse
 } from '../services/api.js';
-import {  confirmDialog } from '../ui/modal.js';
+import { openModal, confirmDialog } from '../ui/modal.js';
 const cacheParticipants = new Map(); // courseId -> people[]
 
 export async function renderCourses() {
@@ -21,7 +22,7 @@ export async function renderCourses() {
           
         </div>
         <div class="panel-actions">
-          
+          <button class="btn primary" id="btnNewCourse">Nuovo corso</button>
         </div>
       </div>
 
@@ -65,7 +66,7 @@ export async function bindCoursesEvents() {
       .replaceAll("'", '&#039;');
   }
 
- function courseItem(c) {
+  function courseItem(c) {
   const teachersTxt = c.istruttori ? esc(c.istruttori) : '—';
   const desc = c.descrizione ? `<div class="meta">${esc(c.descrizione)}</div>` : '';
   const countTxt = `${c.participants_count ?? 0} partecipanti`;
@@ -90,6 +91,7 @@ export async function bindCoursesEvents() {
         ${desc}
         <div class="acc-actions">
           <button class="btn tiny primary" data-add>Aggiungi membri</button>
+          <button class="btn tiny ghost" data-edit="${c.id}">Modifica corso</button>
         </div>
         <div class="participants" data-participants>
           <div class="muted">Caricamento…</div>
@@ -107,6 +109,93 @@ export async function bindCoursesEvents() {
     if (s) filtered = filtered.filter(c => (c.nome_corso || '').toLowerCase().includes(s));
 
     listEl.innerHTML = filtered.map(courseItem).join('') || `<div class="muted">Nessun corso.</div>`;
+  }
+
+  async function openCourseEditor(course = null) {
+    const isEdit = !!course;
+    const form = document.createElement('form');
+    form.className = 'form';
+    form.innerHTML = `
+      <label class="field">
+        <span>Nome corso*</span>
+        <input name="nome_corso" required placeholder="Nome corso" />
+      </label>
+      <label class="field">
+        <span>Tipo corso</span>
+        <input name="tipo_corso" placeholder="BALLO / FITNESS / ARTI_MARZIALI" />
+      </label>
+      <label class="field">
+        <span>Descrizione</span>
+        <input name="descrizione" placeholder="Descrizione breve" />
+      </label>
+      <label class="field">
+        <span>Istruttori</span>
+        <input name="istruttori" placeholder="Nomi istruttori" />
+      </label>
+      <label class="field">
+        <span>Attivo</span>
+        <select name="is_active">
+          <option value="true">Sì</option>
+          <option value="false">No</option>
+        </select>
+      </label>
+      <div class="row actions">
+        <button class="btn ghost" type="button" data-cancel>Annulla</button>
+        <span></span>
+        <button class="btn primary" type="submit">Salva</button>
+      </div>
+    `;
+
+    const { close } = openModal({
+      title: isEdit ? 'Modifica corso' : 'Nuovo corso',
+      content: form
+    });
+
+    const fill = (values) => {
+      Object.entries(values).forEach(([k, v]) => {
+        const el = form.querySelector(`[name="${k}"]`);
+        if (el) el.value = v;
+      });
+    };
+
+    if (isEdit) {
+      fill({
+        nome_corso: course.nome_corso ?? '',
+        tipo_corso: course.tipo_corso ?? '',
+        descrizione: course.descrizione ?? '',
+        istruttori: course.istruttori ?? '',
+        is_active: String(course.is_active ?? true),
+      });
+    }
+
+    form.querySelector('[data-cancel]').addEventListener('click', close);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const nome_corso = String(fd.get('nome_corso') || '').trim();
+      if (!nome_corso) {
+        toast('Nome corso obbligatorio', 'error');
+        return;
+      }
+      const payload = {
+        ...(isEdit ? { id: course.id } : {}),
+        nome_corso,
+        tipo_corso: String(fd.get('tipo_corso') || '').trim() || null,
+        descrizione: String(fd.get('descrizione') || '').trim() || null,
+        istruttori: String(fd.get('istruttori') || '').trim() || null,
+        is_active: String(fd.get('is_active')) === 'true',
+      };
+
+      try {
+        await upsertCourse(payload);
+        toast('Corso salvato', 'ok');
+        close();
+        await loadCourses();
+      } catch (err) {
+        toast(err?.message ?? 'Errore salvataggio', 'error');
+      }
+    });
   }
 
   function renderParticipants(containerEl, people, courseId) {
@@ -326,6 +415,9 @@ export async function bindCoursesEvents() {
     });
   });
 
+  const btnNewCourse = document.querySelector('#btnNewCourse');
+  btnNewCourse?.addEventListener('click', () => openCourseEditor());
+
   // auto-load participants on open (prevede il toggle)
   listEl.addEventListener('click', async (e) => {
     const summary = e.target.closest('summary.acc-sum');
@@ -348,6 +440,14 @@ export async function bindCoursesEvents() {
 
   // add/remove actions
   listEl.addEventListener('click', async (e) => {
+    const edit = e.target.closest('button[data-edit]');
+    if (edit) {
+      const courseId = Number(edit.getAttribute('data-edit'));
+      const course = (allCourses ?? []).find(c => Number(c.id) === courseId);
+      if (!course) return;
+      await openCourseEditor(course);
+      return;
+    }
     // remove
     const rm = e.target.closest('button[data-remove]');
     if (rm) {

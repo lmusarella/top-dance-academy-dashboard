@@ -38,46 +38,44 @@ export async function renderPeople() {
       </div>
 
     <div class="panel-top">
-  <div class="search-row">
-    <div class="search">
-      <input id="peopleQ"
-             placeholder="Cerca per nome, numero quota o numero tessera…" />
+      <div class="search-row">
+        <div class="search">
+          <input id="peopleQ"
+                 placeholder="Cerca per nome, numero quota o numero tessera…" />
+        </div>
+
+        <div class="cert-filter">
+          <select id="certFilter">
+            <option value="ALL">Tutti i certificati</option>
+            <option value="OK">🟢 Ok</option>
+            <option value="EXPIRED">🔴 Scaduti</option>
+            <option value="MISSING">❌ Assenti</option>
+            <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="h2">
+        Risultati: <b id="totShown">—</b> / <b id="totAll">—</b>
+      </div>
     </div>
 
-    <div class="cert-filter">
-      <select id="certFilter">
-        <option value="ALL">Tutti i certificati</option>
-        <option value="OK">🟢 Ok</option>
-        <option value="EXPIRED">🔴 Scaduti</option>
-        <option value="MISSING">❌ Assenti</option>
-        <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
-      </select>
-    </div>
-  </div>
+    <div class="panel-top">
+      <div class="courses-filter-wrap">
+        <button class="btn primary" type="button" id="btnCourses">Seleziona corsi</button>
+        <div id="coursesChips" class="chips"></div>
+        <div id="coursesFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
+          <div class="muted" id="coursesFilterStatus">Carico corsi…</div>
+          <div id="coursesFilterList" class="stack" style="gap:6px; margin-top:8px"></div>
 
-  <div class="h2">
-    Risultati: <b id="totShown">—</b> / <b id="totAll">—</b>
-  </div>
-</div>
-
-
-        <div class="field">            
-              <div class="courses-filter-wrap">
-              <button class="btn primary" type="button" id="btnCourses">Seleziona corsi</button>
-              <div id="coursesChips" class="chips"></div>
-              <div id="coursesFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
-                <div class="muted" id="coursesFilterStatus">Carico corsi…</div>
-                <div id="coursesFilterList" class="stack" style="gap:6px; margin-top:8px"></div>
-
-                <div class="row" style="justify-content:space-between; margin-top:10px">
-                  <button class="btn ghost" type="button" id="btnCoursesAll">Tutti</button>
-                  <button class="btn ghost" type="button" id="btnCoursesNone">Nessuno</button>
-                  <button class="btn primary" type="button" id="btnCoursesApply">Applica</button>
-                </div>
-              </div>
-              </div>
-            </div>
+          <div class="row" style="justify-content:space-between; margin-top:10px">
+            <button class="btn ghost" type="button" id="btnCoursesAll">Tutti</button>
+            <button class="btn ghost" type="button" id="btnCoursesNone">Nessuno</button>
+            <button class="btn primary" type="button" id="btnCoursesApply">Applica</button>
           </div>
+        </div>
+      </div>
+    </div>
 
       <div class="table-controls">
         <div class="pagination">
@@ -442,14 +440,22 @@ export async function bindPeopleEvents() {
 
   async function resetAndLoad() {
     body.innerHTML = '';
-    const totalAll = await countPeople({ q: '' });  // totale soci
-    const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0;
-    totalFiltered = hasFilters
-      ? await countPeople({ q, certStatus, courseIds: selectedCourseIds })
-      : totalAll;
-    setCounts({ totalAll, totalShown: totalFiltered });
-    updatePagination();
-    await loadPage();
+    setLoading(true);
+    try {
+      const totalAll = await countPeople({ q: '' });  // totale soci
+      const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0;
+      totalFiltered = hasFilters
+        ? await countPeople({ q, certStatus, courseIds: selectedCourseIds })
+        : totalAll;
+      setCounts({ totalAll, totalShown: totalFiltered });
+      updatePagination();
+      await loadPage();
+    } catch (e) {
+      toast(e?.message ?? 'Errore caricamento', 'error');
+      setStatus('Errore.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Debounce ricerca
