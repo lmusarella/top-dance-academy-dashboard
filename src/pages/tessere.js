@@ -1,6 +1,7 @@
-import { listPeopleByQuotaPaged, countPeople, fetchAllPaged } from '../services/api.js';
+import { listPeopleByQuotaPaged, countPeople, fetchAllPaged, upsertContact, upsertMembership } from '../services/api.js';
 import { toast } from '../ui/toast.js';
 import { exportToXlsx } from '../ui/exportExcel.js';
+import { openModal } from '../ui/modal.js';
 
 function esc(s) {
   return String(s ?? '')
@@ -72,8 +73,10 @@ export async function renderTessere() {
               <th>Socio</th>
               <th>Tessera</th>
               <th>Codice fiscale</th>
-              <th>Safeguarding</th>
+              <th>Modulo Safeguarding</th>
+              <th>Note</th>
               <th>Contatti</th>
+              <th class="right">Azioni</th>
             </tr>
           </thead>
           <tbody id="tessereBody"></tbody>
@@ -109,6 +112,7 @@ export async function bindTessereEvents() {
   let q = '';
   let role = 'ALL';
   let loading = false;
+  let cacheRows = [];
   let shown = 0;
 
   function setStatus(msg) {
@@ -138,6 +142,7 @@ export async function bindTessereEvents() {
         <td>${esc(r.nr_tessera ?? '—')}</td>
         <td>${esc(r.codice_fiscale ?? '—')}</td>
         <td>${esc(r.safeguarding ?? '—')}</td>
+        <td>${esc(r.note ?? '—')}</td>
         <td>
           <div class="meta">
             ${r.telefono ? `<span>📞 ${esc(r.telefono)}</span>` : `<span class="muted">📞 —</span>`}
@@ -149,8 +154,87 @@ export async function bindTessereEvents() {
             <span>Consenso WhatsApp: ${formatConsent(r.consenso_whatsapp)}</span>
           </div>
         </td>
+        <td class="right">
+          <button class="icon-btn sm" data-edit="${r.person_id ?? r.id}" title="Modifica">✎</button>
+        </td>
       </tr>
     `;
+  }
+
+  async function openTesseraEditor(row) {
+    const form = document.createElement('form');
+    form.className = 'form';
+    form.innerHTML = `
+      <label class="field">
+        <span>Nr tessera</span>
+        <input name="nr_tessera" placeholder="..." />
+      </label>
+      <label class="field">
+        <span>Codice fiscale</span>
+        <input name="codice_fiscale" placeholder="..." />
+      </label>
+      <label class="field">
+        <span>Modulo Safeguarding</span>
+        <input name="safeguarding" placeholder="..." />
+      </label>
+      <label class="field">
+        <span>Note</span>
+        <input name="note" placeholder="..." />
+      </label>
+      <div class="row actions">
+        <button class="btn ghost" type="button" data-cancel>Annulla</button>
+        <span></span>
+        <button class="btn primary" type="submit">Salva</button>
+      </div>
+    `;
+
+    const { close } = openModal({
+      title: 'Modifica tessera',
+      content: form
+    });
+
+    const fill = (values) => {
+      Object.entries(values).forEach(([k, v]) => {
+        const el = form.querySelector(`[name="${k}"]`);
+        if (el) el.value = v ?? '';
+      });
+    };
+
+    fill({
+      nr_tessera: row.nr_tessera ?? '',
+      codice_fiscale: row.codice_fiscale ?? '',
+      safeguarding: row.safeguarding ?? '',
+      note: row.note ?? '',
+    });
+
+    form.querySelector('[data-cancel]').addEventListener('click', close);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const payloadMembership = {
+        person_id: row.person_id ?? row.id,
+        nr_tessera: String(fd.get('nr_tessera') || '').trim() || null,
+        note: String(fd.get('note') || '').trim() || null,
+      };
+      const payloadContact = {
+        person_id: row.person_id ?? row.id,
+        codice_fiscale: String(fd.get('codice_fiscale') || '').trim() || null,
+        safeguarding: String(fd.get('safeguarding') || '').trim() || null,
+      };
+
+      try {
+        await Promise.all([
+          upsertMembership(payloadMembership.person_id, payloadMembership),
+          upsertContact(payloadContact.person_id, payloadContact),
+        ]);
+        toast('Aggiornato', 'ok');
+        close();
+        await resetAndLoad();
+      } catch (err) {
+        toast(err?.message ?? 'Errore salvataggio', 'error');
+      }
+    });
   }
 
   async function loadPage() {
@@ -166,7 +250,9 @@ export async function bindTessereEvents() {
         setStatus('Nessun risultato.');
         shown = 0;
         updateCount(totalAll);
+        cacheRows = [];
       } else {
+        cacheRows = rows;
         body.innerHTML = rows.map(rowHtml).join('');
         updateCount(totalAll);
         setStatus(`Pagina ${currentPage}`);
@@ -230,6 +316,14 @@ export async function bindTessereEvents() {
     updatePagination();
     await loadPage();
   });
+  body.addEventListener('click', async (e) => {
+    const editBtn = e.target.closest('button[data-edit]');
+    if (!editBtn) return;
+    const personId = Number(editBtn.getAttribute('data-edit'));
+    const row = (cacheRows ?? []).find(r => Number(r.person_id ?? r.id) === personId);
+    if (!row) return;
+    await openTesseraEditor(row);
+  });
   btnExport?.addEventListener('click', async () => {
     try {
       const all = await fetchAllPaged(({ limit, offset }) =>
@@ -244,6 +338,7 @@ export async function bindTessereEvents() {
         'ruolo',
         'codice_fiscale',
         'safeguarding',
+        'note',
         'telefono',
         'email',
         'consenso_whatsapp',
