@@ -551,93 +551,95 @@ export async function openPersonEditor({ personId, onSaved }) {
   const form = document.createElement('form');
   form.className = 'form grid2';
   form.innerHTML = `
+    <div class="form-column">
+      <div class="section">
+        <h3>Informazioni Generali</h3>
+      </div>
 
+      <label class="field">
+        <span>Nome*</span>
+        <input name="display_name" required placeholder="COGNOME NOME"/>
+      </label>
 
-    <div class="section">
-    
-    <h3>Informazioni Generali</h3>
-    
+      <label class="field size-xs">
+        <span>Nr quota</span>
+        <input name="nr_quota" type="number" placeholder="123"/>
+      </label>
+
+      <label class="field size-sm">
+        <span>Ruolo</span>
+        <select name="ruolo">
+          <option value="ALLIEVO">ALLIEVO</option>
+          <option value="COLLABORATORE">COLLABORATORE</option>
+          <option value="ALTRO">ALTRO</option>
+        </select>
+      </label>
     </div>
 
-    <label class="field">
-      <span>Nome*</span>
-      <input name="display_name" required placeholder="COGNOME NOME"/>
-    </label>
+    <div class="form-column">
+      <div class="section"><h3>Contatti</h3></div>
 
-    <label class="field size-xs">
-      <span>Nr quota</span>
-      <input name="nr_quota" type="number" placeholder="123"/>
-    </label>
+      <label class="field">
+        <span>Telefono</span>
+        <input name="telefono" placeholder="+39 ..."/>
+      </label>
 
-    <label class="field size-sm">
-      <span>Ruolo</span>
-      <select name="ruolo">
-        <option value="ALLIEVO">ALLIEVO</option>
-        <option value="COLLABORATORE">COLLABORATORE</option>
-        <option value="ALTRO">ALTRO</option>
-      </select>
-    </label>
+      <label class="field">
+        <span>Email</span>
+        <input name="email" type="email" placeholder="nome@email.it"/>
+      </label>
 
-    <label class="field size-md">
-      <span>Codice fiscale</span>
-      <input name="codice_fiscale" placeholder="..."/>
-    </label>
+      <label class="field size-xs">
+        <span>Consenso WhatsApp</span>
+        <select name="consenso_whatsapp">
+          <option value="">—</option>
+          <option value="true">Sì 👍</option>
+          <option value="false">No 👎</option>
+        </select>
+      </label>
 
-     <label class="field size-sm">
-      <span>Nr tessera</span>
-      <input name="nr_tessera" placeholder="..."/>
-    </label>
+      <div class="section"><h3>Certificato</h3></div>
 
-     <label class="field size-xs">
-      <span>Modulo Safeguarding</span>
-      <select name="safeguarding">      
-        <option value="true">🟢 Ok</option>
-        <option value="false">❌ Assente</option>
-      </select>
-    </label>
+      <label class="field size-sm">
+        <span>Scadenza (YYYY-MM-DD)</span>
+        <input name="scadenza" type="date"/>
+      </label>
 
-    <label class="field">
-      <span>Note Tesseramento</span>
-      <input name="note" placeholder="..."/>
-    </label>
+      <label class="field size-md">
+        <span>Fonte</span>
+        <input name="fonte" placeholder="Import/Manuale"/>
+      </label>
+    </div>
 
-    <div class="section"><h3>Contatti</h3></div>
+    <div class="span2">
+      <div class="section"><h3>Tesseramento</h3></div>
+      <div class="form-subgrid">
+        <label class="field size-md">
+          <span>Codice fiscale</span>
+          <input name="codice_fiscale" placeholder="..."/>
+        </label>
 
-    <label class="field">
-      <span>Telefono</span>
-      <input name="telefono" placeholder="+39 ..."/>
-    </label>
+        <label class="field size-sm">
+          <span>Nr tessera</span>
+          <input name="nr_tessera" placeholder="..."/>
+        </label>
 
-    <label class="field">
-      <span>Email</span>
-      <input name="email" type="email" placeholder="nome@email.it"/>
-    </label>
+        <label class="field size-xs">
+          <span>Modulo Safeguarding</span>
+          <select name="safeguarding">
+            <option value="true">🟢 Ok</option>
+            <option value="false">❌ Assente</option>
+          </select>
+        </label>
 
-    
+        <label class="field">
+          <span>Note Tesseramento</span>
+          <input name="note" placeholder="..."/>
+        </label>
+      </div>
+    </div>
 
-    <label class="field size-xs">
-      <span>Consenso WhatsApp</span>
-      <select name="consenso_whatsapp">
-        <option value="">—</option>
-        <option value="true">Sì 👍</option>
-        <option value="false">No 👎</option>
-      </select>
-    </label>
-
-    <div class="section"><h3>Certificato</h3></div>
-
-    <label class="field size-sm">
-      <span>Scadenza (YYYY-MM-DD)</span>
-      <input name="scadenza" type="date"/>
-    </label>
-
-    <label class="field size-md">
-      <span>Fonte</span>
-      <input name="fonte" placeholder="Import/Manuale"/>
-    </label>
-
-        <div class="section"><h3>Corsi</h3></div>
-
+    <div class="section"><h3>Corsi</h3></div>
 
     <label class="field">
       <span>Note corso</span>
@@ -645,7 +647,6 @@ export async function openPersonEditor({ personId, onSaved }) {
     </label>
 
     <div class="field span2">
-     
       <div id="coursesBox" class="courses-box muted">Carico corsi…</div>
     </div>
 
