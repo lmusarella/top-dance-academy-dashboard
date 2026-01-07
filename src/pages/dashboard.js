@@ -4,11 +4,17 @@ import { openPersonEditor } from './people.js';
 import { exportToXlsx } from '../ui/exportExcel.js';
 
 function chip(days) {
-  if (days == null) return `<span >—</span>`;
+  if (days == null) return `<span>❌ Assente</span>`;
   if (days < 0) return `<span >🔴 Scaduto (${days})</span>`;
   if (days <= 7) return `<span >🟡 Scade tra ${days} gg</span>`;
   if (days <= 30) return `<span >🔵 Scade tra ${days} gg</span>`;
   return `<span>✅ OK</span>`;
+}
+
+function formatConsent(value) {
+  if (value === true) return 'Sì';
+  if (value === false) return 'No';
+  return '—';
 }
 
 export async function renderDashboard() {
@@ -28,6 +34,10 @@ export async function renderDashboard() {
       <div class="kpis" id="kpis">
         <button class="kpi" data-kpi="EXPIRED" type="button">
           <div class="k">Scaduti</div><div class="v danger">—</div>
+        </button>
+
+        <button class="kpi" data-kpi="MISSING" type="button">
+          <div class="k">Assenti</div><div class="v danger">—</div>
         </button>
 
         <button class="kpi" data-kpi="DUE7" type="button">
@@ -89,7 +99,8 @@ export async function bindDashboardEvents() {
   }
   function matchKpi(r) {
     const d = r?.giorni_rimanenti;
-    if (d == null) return false; // in dashboard hai solo scadenza non null, ma safe
+    if (kpiFilter === 'MISSING') return d == null;
+    if (d == null) return false;
     if (kpiFilter === 'EXPIRED') return d < 0;
     if (kpiFilter === 'DUE7') return d >= 0 && d <= 7;
     if (kpiFilter === 'DUE30') return d >= 0 && d <= 30;
@@ -167,14 +178,16 @@ kpis?.addEventListener('click', (e) => {
 });
   function computeKpi(list) {
     const days = list.map(x => x.giorni_rimanenti).filter(x => x != null);
+    const missing = list.filter(x => x?.giorni_rimanenti == null).length;
     const expired = days.filter(d => d < 0).length;
     const due7 = days.filter(d => d >= 0 && d <= 7).length;
     const due30 = days.filter(d => d >= 0 && d <= 30).length;
 
     const cards = kpis.querySelectorAll('.kpi .v');
     cards[0].textContent = String(expired);
-    cards[1].textContent = String(due7);
-    cards[2].textContent = String(due30);
+    cards[1].textContent = String(missing);
+    cards[2].textContent = String(due7);
+    cards[3].textContent = String(due30);
   }
 
   function renderRows(list) {
@@ -206,7 +219,7 @@ kpis?.addEventListener('click', (e) => {
              ${r.email ? `<span>✉️ ${escapeHtml(r.email)}</span>` : `<span class="muted">✉️ —</span>`}
           </div>
             <div class="meta">
-             ${r.consenso_whatsapp ? `<span>👍 Consenso Whatsapp` : `<span>👎 Consenso Whatsapp`}
+             <span>Consenso WhatsApp: ${formatConsent(r.consenso_whatsapp)}</span>
           </div>
           </td>
 

@@ -17,6 +17,11 @@ function escapeHtml(s) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }
+function formatConsent(value) {
+  if (value === true) return 'Sì';
+  if (value === false) return 'No';
+  return '—';
+}
 export async function renderPeople() {
   return `
   <div class="stack">
@@ -350,8 +355,8 @@ export async function bindPeopleEvents() {
           <div class="meta">
              ${r.email ? `<span>✉️ ${escapeHtml(r.email)}</span>` : `<span class="muted">✉️ —</span>`}
           </div>
-            <div class="meta">
-             ${r.consenso_whatsapp ? `<span>👍 Consenso Whatsapp` : `<span>👎 Consenso Whatsapp`}
+          <div class="meta">
+             <span>Consenso WhatsApp: ${formatConsent(r.consenso_whatsapp)}</span>
           </div>
           </td>
 
@@ -546,8 +551,8 @@ export async function openPersonEditor({ personId, onSaved }) {
       <span>Consenso WhatsApp</span>
       <select name="consenso_whatsapp">
         <option value="">—</option>
-        <option value="true">true</option>
-        <option value="false">false</option>
+        <option value="true">Sì</option>
+        <option value="false">No</option>
       </select>
     </label>
 

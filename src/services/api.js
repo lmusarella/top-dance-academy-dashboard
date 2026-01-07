@@ -133,6 +133,42 @@ export async function listPeoplePaged({
   return data ?? [];
 }
 
+export async function listPeopleByQuotaPaged({
+  q = '',
+  limit = 60,
+  offset = 0
+} = {}) {
+  let query = supabase
+    .from('v_people_search')
+    .select('*')
+    .order('nr_quota', { ascending: true, nullsFirst: false })
+    .range(offset, offset + limit - 1);
+
+  const s = String(q ?? '').trim();
+  if (!s) {
+    const { data, error } = await query;
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  const isNumeric = /^\d+$/.test(s);
+  const sNorm = s.replace(/\s+/g, ' ');
+
+  if (isNumeric) {
+    query = query.or(
+      `nr_quota.eq.${Number(sNorm)},nr_tessera.ilike.%${sNorm}%,display_name_norm.ilike.%${sNorm}%`
+    );
+  } else {
+    query = query.or(
+      `display_name_norm.ilike.%${sNorm}%,nr_tessera.ilike.%${sNorm}%`
+    );
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
 
 export async function countPeople({
   q = '',
