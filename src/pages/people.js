@@ -610,8 +610,7 @@ export async function openPersonEditor({ personId, onSaved }) {
 
     <label class="field size-xs">
       <span>Modulo Safeguarding</span>
-      <select name="safeguarding">
-        <option value="">—</option>
+      <select name="safeguarding">      
         <option value="true">🟢 Ok</option>
         <option value="false">❌ Assente</option>
       </select>
@@ -798,14 +797,12 @@ export async function openPersonEditor({ personId, onSaved }) {
       const consensoBool = consenso === '' ? null : consenso === 'true';
 
       const safeguarding = String(fd.get('safeguarding') || '').trim();
-      const safeguardingBool = safeguardingBool === '' ? null : safeguarding === 'true';
+      const safeguardingBool = safeguarding === '' ? null : safeguarding === 'true';
 
       await Promise.all([
         upsertContact(id, {
           telefono: strOrNull(fd.get('telefono')),
-          email: strOrNull(fd.get('email')),
-
-          safeguarding: strOrNull(fd.get('safeguarding')),
+          email: strOrNull(fd.get('email')),        
           consenso_whatsapp: consensoBool,
         }),
         upsertMembership(id, {

@@ -131,7 +131,7 @@ export async function bindCoursesEvents() {
       </label>
       <label class="field size-md">
         <span>Tipo corso</span>
-        <input name="tipo_corso" placeholder="BALLO / FITNESS / ARTI_MARZIALI" />
+        <input name="tipo_corso" required placeholder="BALLO / FITNESS / ARTI_MARZIALI" />
       </label>
       <label class="field">
         <span>Descrizione</span>
