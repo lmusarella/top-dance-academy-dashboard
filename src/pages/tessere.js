@@ -135,7 +135,7 @@ export async function bindTessereEvents() {
         <td>${esc(r.nr_tessera ?? '—')}</td>
         <td>${esc(r.note ?? '—')}</td>
         <td>${esc(r.codice_fiscale ?? '—')}</td>
-        <td>${esc(r.safeguarding ?? '—')}</td>
+        <td>${esc(r.safeguarding ? 'Sì': 'No')}</td>
         <td class="right">
           <button class="icon-btn sm" data-edit="${r.person_id ?? r.id ?? ''}" title="Modifica">✎</button>
         </td>
@@ -144,7 +144,7 @@ export async function bindTessereEvents() {
   }
 
   async function openTesseraEditor(row) {
-   
+
     const form = document.createElement('form');
     form.className = 'form';
     form.innerHTML = `
@@ -156,9 +156,13 @@ export async function bindTessereEvents() {
         <span>Codice fiscale</span>
         <input name="codice_fiscale" placeholder="..." />
       </label>
-      <label class="field size-xs">
+       <label class="field size-xs">
         <span>Modulo Safeguarding</span>
-        <input name="safeguarding" placeholder="..." />
+        <select name="safeguarding">
+          <option value="">—</option>
+          <option value="true">Sì</option>
+          <option value="false">No</option>
+        </select>
       </label>
       <label class="field">
         <span>Note</span>
@@ -195,21 +199,20 @@ export async function bindTessereEvents() {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(form);
+      const safeguarding = String(fd.get('safeguarding') || '').trim();
+      const safeguardingBool = safeguarding === '' ? null : safeguarding === 'true';
+
       const payloadMembership = {
         person_id: row.person_id ?? row.id,
         nr_tessera: String(fd.get('nr_tessera') || '').trim() || null,
         note: String(fd.get('note') || '').trim() || null,
-      };
-      const payloadContact = {
-        person_id: row.person_id ?? row.id,
         codice_fiscale: String(fd.get('codice_fiscale') || '').trim() || null,
-        safeguarding: String(fd.get('safeguarding') || '').trim() || null,
+        safeguarding: safeguardingBool,
       };
 
       try {
         await Promise.all([
           upsertMembership(payloadMembership.person_id, payloadMembership),
-          upsertContact(payloadContact.person_id, payloadContact),
         ]);
         toast('Aggiornato', 'ok');
         close();
@@ -300,7 +303,7 @@ export async function bindTessereEvents() {
     await loadPage();
   });
   body.addEventListener('click', async (e) => {
-    
+
     const editBtn = e.target.closest('button[data-edit]');
     if (!editBtn) return;
     const personId = editBtn.getAttribute('data-edit');
@@ -310,7 +313,7 @@ export async function bindTessereEvents() {
       return;
     }
     try {
-      
+
       await openTesseraEditor(row);
     } catch (err) {
       toast(err?.message ?? 'Errore apertura modifica', 'error');

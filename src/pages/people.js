@@ -479,7 +479,7 @@ export async function bindPeopleEvents() {
     currentPage = 1;
     await resetAndLoad();
   });
-  
+
   pageSizeSelect?.addEventListener('change', async () => {
     pageSize = Number(pageSizeSelect.value) || PAGE_DEFAULT;
     currentPage = 1;
@@ -612,8 +612,8 @@ export async function openPersonEditor({ personId, onSaved }) {
       <span>Modulo Safeguarding</span>
       <select name="safeguarding">
         <option value="">—</option>
-        <option value="SI">Sì</option>
-        <option value="NO">No</option>
+        <option value="true">Sì</option>
+        <option value="false">No</option>
       </select>
     </label>
 
@@ -704,6 +704,7 @@ export async function openPersonEditor({ personId, onSaved }) {
   if (isEdit) {
     try {
       const full = await getPersonFull(personId);
+      console.log('full', full)
       fill(form, {
         display_name: full.person.display_name ?? '',
         nr_quota: full.person.nr_quota ?? '',
@@ -711,11 +712,11 @@ export async function openPersonEditor({ personId, onSaved }) {
         corso: full.person.corso ?? '',
         telefono: full.contact?.telefono ?? '',
         email: full.contact?.email ?? '',
-        codice_fiscale: full.contact?.codice_fiscale ?? '',
+        codice_fiscale: full.membership?.codice_fiscale ?? '',
         consenso_whatsapp: full.contact?.consenso_whatsapp === null || full.contact?.consenso_whatsapp === undefined
           ? ''
           : String(full.contact.consenso_whatsapp),
-        safeguarding: full.contact?.safeguarding ?? '',
+        safeguarding: full.membership?.safeguarding === null || full.membership?.safeguarding === undefined ? '': String(full.membership?.safeguarding),
 
         nr_tessera: full.membership?.nr_tessera ?? '',
         note: full.membership?.note ?? '',
@@ -796,16 +797,21 @@ export async function openPersonEditor({ personId, onSaved }) {
       const consenso = String(fd.get('consenso_whatsapp') || '').trim();
       const consensoBool = consenso === '' ? null : consenso === 'true';
 
+      const safeguarding = String(fd.get('safeguarding') || '').trim();
+      const safeguardingBool = safeguardingBool === '' ? null : safeguarding === 'true';
+
       await Promise.all([
         upsertContact(id, {
           telefono: strOrNull(fd.get('telefono')),
           email: strOrNull(fd.get('email')),
-          codice_fiscale: strOrNull(fd.get('codice_fiscale')),
+
           safeguarding: strOrNull(fd.get('safeguarding')),
           consenso_whatsapp: consensoBool,
         }),
         upsertMembership(id, {
           nr_tessera: strOrNull(fd.get('nr_tessera')),
+          codice_fiscale: strOrNull(fd.get('codice_fiscale')),
+          safeguarding: safeguardingBool,
           note: strOrNull(fd.get('note')),
         }),
         upsertCertificate(id, {
