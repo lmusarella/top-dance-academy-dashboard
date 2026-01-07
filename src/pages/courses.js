@@ -31,16 +31,18 @@ export async function renderCourses() {
       <div class="panel-top">
         <div class="search">
           <input id="qCourse" placeholder="Cerca corso…" />
-        </div>
-        <div class="meta">Risultati: <b id="coursesCount">—</b></div>
-        <div class="cert-filter">
-          <select id="courseTypeFilter">
-            <option value="">Tutti i tipi</option>
+           <select id="courseTypeFilter">
+            <option value="">Tutti</option>
             <option value="BALLO">Ballo</option>
             <option value="FITNESS">Fitness</option>
             <option value="ARTI_MARZIALI">Arti marziali</option>
           </select>
         </div>
+       
+        <div class="cert-filter">
+         
+        </div>
+         <div class="meta">Risultati: <b id="coursesCount">—</b></div>
       </div>
 
       <div id="coursesList" class="accordion"></div>

@@ -40,9 +40,9 @@ export async function renderTessere() {
           </div>
           <div class="cert-filter">
             <select id="tessereSafeguardingFilter">
-              <option value="ALL">Modulo Safeguarding: tutti</option>
-              <option value="OK">Modulo Safeguarding: ok</option>
-              <option value="ASSENTE">Modulo Safeguarding: assente</option>
+              <option value="ALL">Modulo Safeguarding: Tutti</option>
+              <option value="OK">Modulo Safeguarding: 🟢 Ok</option>
+              <option value="ASSENTE">Modulo Safeguarding: ❌ Assente</option>
             </select>
           </div>
         </div>
