@@ -176,7 +176,7 @@ export async function bindTessereEvents() {
     `;
 
     const { close } = openModal({
-      title: 'Modifica tessera',
+      title: 'Modifica tessera: ' + row.display_name,
       content: form
     });
 
