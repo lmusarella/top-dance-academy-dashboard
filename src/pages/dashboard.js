@@ -5,15 +5,15 @@ import { exportToXlsx } from '../ui/exportExcel.js';
 
 function chip(days) {
   if (days == null) return `<span>❌ Assente</span>`;
-  if (days < 0) return `<span >🔴 Scaduto (${days})</span>`;
+  if (days < 0) return `<span >🔴 Scaduto (${days} gg)</span>`;
   if (days <= 7) return `<span >🟡 Scade tra ${days} gg</span>`;
   if (days <= 30) return `<span >🔵 Scade tra ${days} gg</span>`;
   return `<span>✅ OK</span>`;
 }
 
 function formatConsent(value) {
-  if (value === true) return 'Sì';
-  if (value === false) return 'No';
+  if (value === true) return '👍';
+  if (value === false) return '👎';
   return '—';
 }
 
@@ -32,12 +32,11 @@ export async function renderDashboard() {
       </div>
 
       <div class="kpis" id="kpis">
-        <button class="kpi" data-kpi="EXPIRED" type="button">
-          <div class="k">Scaduti</div><div class="v danger">—</div>
-        </button>
-
         <button class="kpi" data-kpi="MISSING" type="button">
           <div class="k">Assenti</div><div class="v danger">—</div>
+        </button>
+        <button class="kpi" data-kpi="EXPIRED" type="button">
+          <div class="k">Scaduti</div><div class="v danger">—</div>
         </button>
 
         <button class="kpi" data-kpi="DUE7" type="button">
@@ -138,7 +137,6 @@ export async function bindDashboardEvents() {
   function matchKpi(r) {
     const d = r?.giorni_rimanenti;
     if (kpiFilter === 'MISSING') return d == null;
-    if (d == null) return false;
     if (kpiFilter === 'EXPIRED') return d < 0;
     if (kpiFilter === 'DUE7') return d >= 0 && d <= 7;
     if (kpiFilter === 'DUE30') return d >= 0 && d <= 30;

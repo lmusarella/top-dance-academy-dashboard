@@ -106,6 +106,8 @@ export async function listPeoplePaged({
   if (certStatus && certStatus !== 'ALL') {
     if (certStatus === 'EXPIRED_OR_MISSING') {
       query = query.in('cert_status', ['EXPIRED', 'MISSING']);
+    } else if (certStatus === 'OK') {
+      query = query.in('cert_status', ['OK', 'IN_SCADENZA']);
     } else {
       query = query.eq('cert_status', certStatus);
     }
@@ -199,6 +201,8 @@ export async function countPeople({
   if (certStatus && certStatus !== 'ALL') {
     if (certStatus === 'EXPIRED_OR_MISSING') {
       query = query.in('cert_status', ['EXPIRED', 'MISSING']);
+    } else if (certStatus === 'OK') {
+      query = query.in('cert_status', ['OK', 'IN_SCADENZA']);
     } else {
       query = query.eq('cert_status', certStatus);
     }

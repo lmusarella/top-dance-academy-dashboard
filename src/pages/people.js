@@ -18,8 +18,8 @@ function escapeHtml(s) {
     .replaceAll("'", '&#039;');
 }
 function formatConsent(value) {
-  if (value === true) return 'Sì';
-  if (value === false) return 'No';
+  if (value === true) return '👍';
+  if (value === false) return '👎';
   return '—';
 }
 export async function renderPeople() {
@@ -48,6 +48,7 @@ export async function renderPeople() {
           <select id="certFilter">
             <option value="ALL">Tutti i certificati</option>
             <option value="OK">🟢 Ok</option>
+             <option value="IN_SCADENZA">🔵 In scadenza (30 gg)</option>
             <option value="EXPIRED">🔴 Scaduti</option>
             <option value="MISSING">❌ Assenti</option>
             <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
