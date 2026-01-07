@@ -70,10 +70,10 @@ export async function renderTessere() {
             <tr>
               <th>Quota</th>
               <th>Socio</th>
-              <th>Codice fiscale</th>
               <th>Tessera</th>
-              <th>Contatti</th>
+              <th>Codice fiscale</th>
               <th>Safeguarding</th>
+              <th>Contatti</th>
             </tr>
           </thead>
           <tbody id="tessereBody"></tbody>
@@ -105,6 +105,7 @@ export async function bindTessereEvents() {
   let pageSize = Number(pageSizeSelect?.value || PAGE_DEFAULT);
   let currentPage = 1;
   let totalFiltered = 0;
+  let totalAll = 0;
   let q = '';
   let role = 'ALL';
   let loading = false;
@@ -134,8 +135,9 @@ export async function bindTessereEvents() {
           <b>${esc(r.display_name)}</b>
           <div class="meta">${r.ruolo ? esc(r.ruolo) : ''}</div>
         </td>
-        <td>${esc(r.codice_fiscale ?? '—')}</td>
         <td>${esc(r.nr_tessera ?? '—')}</td>
+        <td>${esc(r.codice_fiscale ?? '—')}</td>
+        <td>${esc(r.safeguarding ?? '—')}</td>
         <td>
           <div class="meta">
             ${r.telefono ? `<span>📞 ${esc(r.telefono)}</span>` : `<span class="muted">📞 —</span>`}
@@ -147,7 +149,6 @@ export async function bindTessereEvents() {
             <span>Consenso WhatsApp: ${formatConsent(r.consenso_whatsapp)}</span>
           </div>
         </td>
-        <td>${esc(r.safeguarding ?? '—')}</td>
       </tr>
     `;
   }
@@ -164,11 +165,10 @@ export async function bindTessereEvents() {
         body.innerHTML = '';
         setStatus('Nessun risultato.');
         shown = 0;
-        updateCount(totalFiltered);
+        updateCount(totalAll);
       } else {
         body.innerHTML = rows.map(rowHtml).join('');
-        shown = rows.length;
-        updateCount(totalFiltered);
+        updateCount(totalAll);
         setStatus(`Pagina ${currentPage}`);
       }
     } catch (e) {
@@ -182,9 +182,10 @@ export async function bindTessereEvents() {
   async function resetAndLoad() {
     body.innerHTML = '';
     try {
+      totalAll = await countPeople({ q: '', ruolo: 'ALL' });
       totalFiltered = await countPeople({ q, ruolo: role });
-      shown = 0;
-      updateCount(totalFiltered);
+      shown = totalFiltered;
+      updateCount(totalAll);
       updatePagination();
       await loadPage();
     } catch (e) {
@@ -242,10 +243,10 @@ export async function bindTessereEvents() {
         'nr_tessera',
         'ruolo',
         'codice_fiscale',
+        'safeguarding',
         'telefono',
         'email',
         'consenso_whatsapp',
-        'safeguarding',
       ];
 
       const toExport = (all ?? []).map(r => {
