@@ -79,7 +79,28 @@ export async function renderPeople() {
             </div>
           </div>
 
-      <div class="table-wrap">
+      <div class="table-controls">
+        <div class="pagination">
+          <button class="btn ghost" id="peoplePrev">←</button>
+          <div class="page-info" id="peoplePageInfo">Pagina 1 / 1</div>
+          <button class="btn ghost" id="peopleNext">→</button>
+        </div>
+        <div class="page-size">
+          <span>Risultati per pagina</span>
+          <select id="peoplePageSize">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <div class="loader" id="peopleLoader" hidden>
+          <span class="spinner"></span>
+          <span>Carico dati…</span>
+        </div>
+      </div>
+
+        <div class="table-wrap">
         <table class="table">
           <thead>
             <tr>
@@ -95,7 +116,6 @@ export async function renderPeople() {
 
         <div class="list-footer">
           <div id="peopleStatus" class="muted">Pronto.</div>
-          <div id="sentinel" style="height:1px;"></div>
         </div>
       </div>
     </section>
@@ -106,13 +126,17 @@ export async function renderPeople() {
 export async function bindPeopleEvents() {
   const body = document.querySelector('#peopleBody');
   const status = document.querySelector('#peopleStatus');
-  const sentinel = document.querySelector('#sentinel');
   const qInput = document.querySelector('#peopleQ');
   const btnNew = document.querySelector('#btnNew');
 
   const totAllEl = document.querySelector('#totAll');
   const totShownEl = document.querySelector('#totShown');
   const btnExport = document.querySelector('#btnExport');
+  const pageSizeSelect = document.querySelector('#peoplePageSize');
+  const pageInfo = document.querySelector('#peoplePageInfo');
+  const prevBtn = document.querySelector('#peoplePrev');
+  const nextBtn = document.querySelector('#peopleNext');
+  const loader = document.querySelector('#peopleLoader');
   const coursesChips = document.querySelector('#coursesChips');
   const certFilter = document.querySelector('#certFilter');
   const btnCourses = document.querySelector('#btnCourses');
@@ -125,20 +149,30 @@ export async function bindPeopleEvents() {
 
 
 
-  const PAGE = 60;
+  const PAGE_DEFAULT = 20;
+  let pageSize = Number(pageSizeSelect?.value || PAGE_DEFAULT);
+  let currentPage = 1;
+  let totalFiltered = 0;
   let certStatus = 'ALL';
   let selectedCourseIds = [];      // filtri attivi
   let pendingCourseIds = [];       // selezione “nel box” prima di Applica
   let allCoursesCache = null;
   let q = '';
-  let offset = 0;
   let loading = false;
-  let done = false;
 
   function setCounts({ totalAll = null, totalShown = null } = {}) {
-    console.log('totalShown', totalShown)
     if (totalAll !== null) totAllEl.textContent = String(totalAll);
     if (totalShown !== null) totShownEl.textContent = String(totalShown);
+  }
+  function setLoading(isLoading) {
+    if (loader) loader.hidden = !isLoading;
+  }
+  function updatePagination() {
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+    currentPage = Math.min(currentPage, totalPages);
+    if (pageInfo) pageInfo.textContent = `Pagina ${currentPage} / ${totalPages}`;
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
   }
   function chipsHtml(corsiJson) {
     const arr = Array.isArray(corsiJson) ? corsiJson : [];
@@ -236,6 +270,7 @@ export async function bindPeopleEvents() {
   }
   certFilter.addEventListener('change', async () => {
     certStatus = certFilter.value || 'ALL';
+    currentPage = 1;
     await resetAndLoad();
   });
   function corsiToString(corsi) {
@@ -326,6 +361,7 @@ export async function bindPeopleEvents() {
     selectedCourseIds = [...pendingCourseIds];
     setBtnCoursesLabel();
     coursesFilterBox.style.display = 'none';
+    currentPage = 1;
     await resetAndLoad();
     renderSelectedCourseChips();
   });
@@ -376,58 +412,45 @@ export async function bindPeopleEvents() {
     status.textContent = msg;
   }
 
-  async function loadNext() {
-    if (loading || done) return;
+  async function loadPage() {
+    if (loading) return;
     loading = true;
     setStatus('Carico…');
+    setLoading(true);
 
     try {
+      const offset = (currentPage - 1) * pageSize;
       const rows = await listPeoplePaged({
-        q, limit: PAGE, offset, certStatus,
+        q, limit: pageSize, offset, certStatus,
         courseIds: selectedCourseIds
       });
       if (rows.length === 0) {
-        done = true;
-        setStatus(offset === 0 ? 'Nessun risultato.' : 'Fine lista.');
+        body.innerHTML = '';
+        setStatus('Nessun risultato.');
       } else {
-        body.insertAdjacentHTML('beforeend', rows.map(rowHtml).join(''));
-        offset += rows.length;
-        setStatus(`Mostrati: ${offset}${rows.length < PAGE ? ' • Fine lista.' : ''}`);
-        if (rows.length < PAGE) done = true;
+        body.innerHTML = rows.map(rowHtml).join('');
+        setStatus(`Pagina ${currentPage}`);
       }
     } catch (e) {
       toast(e?.message ?? 'Errore caricamento', 'error');
       setStatus('Errore.');
-      done = true;
     } finally {
       loading = false;
+      setLoading(false);
     }
   }
 
   async function resetAndLoad() {
     body.innerHTML = '';
-    offset = 0;
-    done = false;
-    await loadNext();
-
     const totalAll = await countPeople({ q: '' });  // totale soci
-    setCounts({ totalAll, totalShown: totalAll });
-
-    if (q || certStatus || courseIds) {
-      const totalFiltered = await countPeople({ q, certStatus, courseIds: selectedCourseIds });
-      setCounts({ totalShown: totalFiltered });
-      // volendo puoi mostrare anche "Risultati: X" come totale filtrato atteso
-      // qui uso lo stesso campo totShown solo per "caricati finora"
-      // se vuoi entrambi: aggiungiamo un terzo contatore "Totale ricerca"
-    }
+    const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0;
+    totalFiltered = hasFilters
+      ? await countPeople({ q, certStatus, courseIds: selectedCourseIds })
+      : totalAll;
+    setCounts({ totalAll, totalShown: totalFiltered });
+    updatePagination();
+    await loadPage();
   }
-
-  // Infinite scroll con IntersectionObserver (ottimizzato, zero scroll handler)
-  const io = new IntersectionObserver((entries) => {
-    if (entries.some(e => e.isIntersecting)) loadNext();
-  }, { root: null, rootMargin: '600px 0px', threshold: 0 });
-
-  io.observe(sentinel);
 
   // Debounce ricerca
   let t = null;
@@ -440,10 +463,27 @@ export async function bindPeopleEvents() {
 
   const onSearch = debounce(async () => {
     q = (qInput.value || '').trim();
+    currentPage = 1;
     await resetAndLoad();
   }, 250);
 
   qInput.addEventListener('input', onSearch);
+  pageSizeSelect?.addEventListener('change', async () => {
+    pageSize = Number(pageSizeSelect.value) || PAGE_DEFAULT;
+    currentPage = 1;
+    updatePagination();
+    await loadPage();
+  });
+  prevBtn?.addEventListener('click', async () => {
+    currentPage = Math.max(1, currentPage - 1);
+    updatePagination();
+    await loadPage();
+  });
+  nextBtn?.addEventListener('click', async () => {
+    currentPage += 1;
+    updatePagination();
+    await loadPage();
+  });
 
   btnNew.addEventListener('click', async () => {
     await openPersonEditor({ personId: null, onSaved: resetAndLoad });

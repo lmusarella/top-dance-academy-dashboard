@@ -1,5 +1,6 @@
-import { listPeopleByQuotaPaged } from '../services/api.js';
+import { listPeopleByQuotaPaged, countPeople, fetchAllPaged } from '../services/api.js';
 import { toast } from '../ui/toast.js';
+import { exportToXlsx } from '../ui/exportExcel.js';
 
 function esc(s) {
   return String(s ?? '')
@@ -25,6 +26,9 @@ export async function renderTessere() {
           <div class="h1">Tessere</div>
           <div class="h2">Ordinate per numero quota</div>
         </div>
+        <div class="panel-actions">
+          <button class="btn ghost" id="btnExportTessere">⬇ Export</button>
+        </div>
       </div>
 
       <div class="panel-top">
@@ -32,6 +36,27 @@ export async function renderTessere() {
           <input id="tessereQ" placeholder="Cerca per nome, numero quota o numero tessera…" />
         </div>
         <div class="meta">Mostrati: <b id="tessereCount">0</b></div>
+      </div>
+
+      <div class="table-controls">
+        <div class="pagination">
+          <button class="btn ghost" id="tesserePrev">←</button>
+          <div class="page-info" id="tesserePageInfo">Pagina 1 / 1</div>
+          <button class="btn ghost" id="tessereNext">→</button>
+        </div>
+        <div class="page-size">
+          <span>Risultati per pagina</span>
+          <select id="tesserePageSize">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <div class="loader" id="tessereLoader" hidden>
+          <span class="spinner"></span>
+          <span>Carico dati…</span>
+        </div>
       </div>
 
       <div class="table-wrap">
@@ -49,7 +74,6 @@ export async function renderTessere() {
 
         <div class="list-footer">
           <div id="tessereStatus" class="muted">Pronto.</div>
-          <div id="tessereSentinel" style="height:1px;"></div>
         </div>
       </div>
     </section>
@@ -60,15 +84,21 @@ export async function renderTessere() {
 export async function bindTessereEvents() {
   const body = document.querySelector('#tessereBody');
   const status = document.querySelector('#tessereStatus');
-  const sentinel = document.querySelector('#tessereSentinel');
   const qInput = document.querySelector('#tessereQ');
   const countEl = document.querySelector('#tessereCount');
+  const btnExport = document.querySelector('#btnExportTessere');
+  const pageSizeSelect = document.querySelector('#tesserePageSize');
+  const pageInfo = document.querySelector('#tesserePageInfo');
+  const prevBtn = document.querySelector('#tesserePrev');
+  const nextBtn = document.querySelector('#tessereNext');
+  const loader = document.querySelector('#tessereLoader');
 
-  const PAGE = 70;
+  const PAGE_DEFAULT = 20;
+  let pageSize = Number(pageSizeSelect?.value || PAGE_DEFAULT);
+  let currentPage = 1;
+  let totalFiltered = 0;
   let q = '';
-  let offset = 0;
   let loading = false;
-  let done = false;
   let shown = 0;
 
   function setStatus(msg) {
@@ -77,6 +107,16 @@ export async function bindTessereEvents() {
 
   function updateCount() {
     if (countEl) countEl.textContent = String(shown);
+  }
+  function setLoading(isLoading) {
+    if (loader) loader.hidden = !isLoading;
+  }
+  function updatePagination() {
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+    currentPage = Math.min(currentPage, totalPages);
+    if (pageInfo) pageInfo.textContent = `Pagina ${currentPage} / ${totalPages}`;
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
   }
 
   function rowHtml(r) {
@@ -103,47 +143,40 @@ export async function bindTessereEvents() {
     `;
   }
 
-  async function loadNext() {
-    if (loading || done) return;
+  async function loadPage() {
+    if (loading) return;
     loading = true;
     setStatus('Carico…');
+    setLoading(true);
 
     try {
-      const rows = await listPeopleByQuotaPaged({ q, limit: PAGE, offset });
+      const offset = (currentPage - 1) * pageSize;
+      const rows = await listPeopleByQuotaPaged({ q, limit: pageSize, offset });
       if (rows.length === 0) {
-        done = true;
-        setStatus(offset === 0 ? 'Nessun risultato.' : 'Fine lista.');
+        body.innerHTML = '';
+        setStatus('Nessun risultato.');
       } else {
-        body.insertAdjacentHTML('beforeend', rows.map(rowHtml).join(''));
-        offset += rows.length;
-        shown += rows.length;
+        body.innerHTML = rows.map(rowHtml).join('');
         updateCount();
-        setStatus(`Mostrati: ${shown}${rows.length < PAGE ? ' • Fine lista.' : ''}`);
-        if (rows.length < PAGE) done = true;
+        setStatus(`Pagina ${currentPage}`);
       }
     } catch (e) {
       toast(e?.message ?? 'Errore caricamento', 'error');
       setStatus('Errore.');
-      done = true;
     } finally {
       loading = false;
+      setLoading(false);
     }
   }
 
   async function resetAndLoad() {
     body.innerHTML = '';
-    offset = 0;
-    shown = 0;
-    done = false;
+    totalFiltered = await countPeople({ q });
+    shown = totalFiltered;
     updateCount();
-    await loadNext();
+    updatePagination();
+    await loadPage();
   }
-
-  const io = new IntersectionObserver((entries) => {
-    if (entries.some(e => e.isIntersecting)) loadNext();
-  }, { root: null, rootMargin: '600px 0px', threshold: 0 });
-
-  io.observe(sentinel);
 
   let t = null;
   function debounce(fn, ms = 250) {
@@ -155,10 +188,59 @@ export async function bindTessereEvents() {
 
   const onSearch = debounce(async () => {
     q = (qInput.value || '').trim();
+    currentPage = 1;
     await resetAndLoad();
   }, 250);
 
   qInput.addEventListener('input', onSearch);
+  pageSizeSelect?.addEventListener('change', async () => {
+    pageSize = Number(pageSizeSelect.value) || PAGE_DEFAULT;
+    currentPage = 1;
+    updatePagination();
+    await loadPage();
+  });
+  prevBtn?.addEventListener('click', async () => {
+    currentPage = Math.max(1, currentPage - 1);
+    updatePagination();
+    await loadPage();
+  });
+  nextBtn?.addEventListener('click', async () => {
+    currentPage += 1;
+    updatePagination();
+    await loadPage();
+  });
+  btnExport?.addEventListener('click', async () => {
+    try {
+      const all = await fetchAllPaged(({ limit, offset }) =>
+        listPeopleByQuotaPaged({ q, limit, offset })
+      );
+
+      const EXPORT_COLS = [
+        'id',
+        'display_name',
+        'nr_quota',
+        'nr_tessera',
+        'ruolo',
+        'telefono',
+        'email',
+        'consenso_whatsapp',
+      ];
+
+      const toExport = (all ?? []).map(r => {
+        const flat = { ...r };
+        const out = {};
+        for (const key of EXPORT_COLS) out[key] = flat[key];
+        return out;
+      });
+
+      exportToXlsx({
+        filename: `topdance_tessere_${new Date().toISOString().slice(0, 10)}.xlsx`,
+        sheets: [{ name: 'Tessere', rows: toExport }]
+      });
+    } catch (e) {
+      toast(e?.message ?? 'Errore export', 'error');
+    }
+  });
 
   await resetAndLoad();
 }

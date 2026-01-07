@@ -61,6 +61,27 @@ export async function renderDashboard() {
          </div>
       </div>
 
+      <div class="table-controls">
+        <div class="pagination">
+          <button class="btn ghost" id="dashPrev">←</button>
+          <div class="page-info" id="dashPageInfo">Pagina 1 / 1</div>
+          <button class="btn ghost" id="dashNext">→</button>
+        </div>
+        <div class="page-size">
+          <span>Risultati per pagina</span>
+          <select id="dashPageSize">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <div class="loader" id="dashLoader" hidden>
+          <span class="spinner"></span>
+          <span>Carico dati…</span>
+        </div>
+      </div>
+
       <div class="table-wrap">
         <table class="table" id="dashTable">
           <thead>
@@ -90,12 +111,37 @@ export async function bindDashboardEvents() {
   const btnExport = document.querySelector('#btnExport');
   const totAllEl = document.querySelector('#totAll');
   const totShownEl = document.querySelector('#totShown');
+  const pageSizeSelect = document.querySelector('#dashPageSize');
+  const pageInfo = document.querySelector('#dashPageInfo');
+  const prevBtn = document.querySelector('#dashPrev');
+  const nextBtn = document.querySelector('#dashNext');
+  const loader = document.querySelector('#dashLoader');
   let kpiFilter = '';
   let rows = [];
   let shown = [];
+  let filteredRows = [];
+  let pageSize = Number(pageSizeSelect?.value || 20);
+  let currentPage = 1;
+  let totalFiltered = 0;
   function setCounts(totalAll, totalShown) {
     if (totAllEl) totAllEl.textContent = String(totalAll ?? 0);
     if (totShownEl) totShownEl.textContent = String(totalShown ?? 0);
+  }
+  function setLoading(isLoading) {
+    if (loader) loader.hidden = !isLoading;
+  }
+  function updatePagination() {
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+    currentPage = Math.min(currentPage, totalPages);
+    if (pageInfo) pageInfo.textContent = `Pagina ${currentPage} / ${totalPages}`;
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+  }
+  function paginate(list) {
+    totalFiltered = list.length;
+    updatePagination();
+    const start = (currentPage - 1) * pageSize;
+    return list.slice(start, start + pageSize);
   }
   function matchKpi(r) {
     const d = r?.giorni_rimanenti;
@@ -109,13 +155,17 @@ export async function bindDashboardEvents() {
 
   async function load() {
     body.innerHTML = `<tr><td colspan="4" class="muted">Carico dati…</td></tr>`;
+    setLoading(true);
     try {
       rows = await getDashboardRows(600);
       computeKpi(rows);
+      currentPage = 1;
       applyFilter();
     } catch (e) {
       toast(e?.message ?? 'Errore lettura dati', 'error');
       body.innerHTML = `<tr><td colspan="4" class="muted">Errore</td></tr>`;
+    } finally {
+      setLoading(false);
     }
   }
   function corsiToString(corsi) {
@@ -145,7 +195,7 @@ export async function bindDashboardEvents() {
       'corso', // la mettiamo noi come stringa
     ];
 
-    const toExport = (shown ?? []).map(r => {
+    const toExport = (filteredRows ?? []).map(r => {
       const flat = {
         ...r,
         corsi: corsiToString(r.corsi), // <-- QUI il fix
@@ -174,6 +224,7 @@ kpis?.addEventListener('click', (e) => {
     activeEl?.classList.add('active');
   }
 
+  currentPage = 1;
   applyFilter();
 });
   function computeKpi(list) {
@@ -192,8 +243,7 @@ kpis?.addEventListener('click', (e) => {
 
   function renderRows(list) {
     shown = Array.isArray(list) ? list : [];
-    setCounts(rows.length, shown.length);
-    const html = list.map(r => `
+    const html = shown.map(r => `
       <tr>
         <td>
         <b>${escapeHtml(r.display_name)}</b>
@@ -239,7 +289,7 @@ kpis?.addEventListener('click', (e) => {
    
   `;
   }
- function applyFilter() {
+  function applyFilter() {
   const s = (q?.value || '').trim().toLowerCase();
 
   let filtered = rows;
@@ -255,7 +305,10 @@ kpis?.addEventListener('click', (e) => {
     });
   }
 
-  renderRows(filtered);
+  filteredRows = filtered;
+  setCounts(rows.length, filtered.length);
+  const paged = paginate(filtered);
+  renderRows(paged);
 }
 
   body.addEventListener('click', async (e) => {
@@ -286,7 +339,23 @@ kpis?.addEventListener('click', (e) => {
   kpis?.querySelectorAll('.kpi').forEach(el => el.classList.remove('active'));
     await load();       // load() renderizza già e quindi shown=rows
   });
-  q?.addEventListener('input', applyFilter);
+  q?.addEventListener('input', () => {
+    currentPage = 1;
+    applyFilter();
+  });
+  pageSizeSelect?.addEventListener('change', () => {
+    pageSize = Number(pageSizeSelect.value) || 20;
+    currentPage = 1;
+    applyFilter();
+  });
+  prevBtn?.addEventListener('click', () => {
+    currentPage = Math.max(1, currentPage - 1);
+    applyFilter();
+  });
+  nextBtn?.addEventListener('click', () => {
+    currentPage += 1;
+    applyFilter();
+  });
 
   await load();
 }
@@ -299,4 +368,3 @@ function escapeHtml(s) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }
-
