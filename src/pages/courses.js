@@ -126,7 +126,7 @@ export async function bindCoursesEvents() {
         <span>Nome corso*</span>
         <input name="nome_corso" required placeholder="Nome corso" />
       </label>
-      <label class="field">
+      <label class="field size-md">
         <span>Tipo corso</span>
         <input name="tipo_corso" placeholder="BALLO / FITNESS / ARTI_MARZIALI" />
       </label>
@@ -134,11 +134,11 @@ export async function bindCoursesEvents() {
         <span>Descrizione</span>
         <input name="descrizione" placeholder="Descrizione breve" />
       </label>
-      <label class="field">
+      <label class="field size-md">
         <span>Istruttori</span>
         <input name="istruttori" placeholder="Nomi istruttori" />
       </label>
-      <label class="field">
+      <label class="field size-xs">
         <span>Attivo</span>
         <select name="is_active">
           <option value="true">Sì</option>

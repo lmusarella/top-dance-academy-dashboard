@@ -162,35 +162,15 @@ export async function bindDashboardEvents() {
     return arr.map(x => x?.nome).filter(Boolean).join(', ');
   }
 
-  function pick(obj, keys) {
-    const out = {};
-    for (const k of keys) out[k] = obj?.[k];
-    return out;
-  }
   btnExport?.addEventListener('click', async () => {
-    // quali colonne vuoi esportare (ordine incluso)
-    const EXPORT_COLS = [
-      'person_id',
-      'display_name',
-      'nr_quota',
-      'nr_tessera',
-      'ruolo',
-      'giorni_rimanenti',
-      'scadenza_fmt',
-      'telefono',
-      'email',
-      'consenso_whatsapp',
-      'corsi',
-      'corso', // la mettiamo noi come stringa
-    ];
-
-    const toExport = (filteredRows ?? []).map(r => {
-      const flat = {
-        ...r,
-        corsi: corsiToString(r.corsi), // <-- QUI il fix
-      };
-      return pick(flat, EXPORT_COLS);
-    });
+    const toExport = (filteredRows ?? []).map(r => ({
+      quota: r.nr_quota ?? null,
+      nome: r.display_name ?? null,
+      tessera: r.nr_tessera ?? null,
+      scadenza: r.scadenza_fmt ?? null,
+      giorni: r.giorni_rimanenti ?? null,
+      corsi: corsiToString(r.corsi),
+    }));
 
     exportToXlsx({
       filename: `topdance_controllo_certificati_${new Date().toISOString().slice(0, 10)}.xlsx`,

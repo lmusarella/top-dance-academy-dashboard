@@ -300,7 +300,7 @@ export async function bindPeopleEvents() {
       'nr_tessera',
       'ruolo',
       'giorni_rimanenti',
-      'scadenza_fmt',
+      'scadenza',
       'telefono',
       'email',
       'consenso_whatsapp',
@@ -312,6 +312,7 @@ export async function bindPeopleEvents() {
       const flat = {
         ...r,
         corsi: corsiToString(r.corsi), // <-- QUI il fix
+        scadenza: r.scadenza_fmt ?? null,
       };
       return pick(flat, EXPORT_COLS);
     });
@@ -554,12 +555,12 @@ export async function openPersonEditor({ personId, onSaved }) {
       <input name="display_name" required placeholder="COGNOME NOME"/>
     </label>
 
-    <label class="field">
+    <label class="field size-xs">
       <span>Nr quota</span>
       <input name="nr_quota" type="number" placeholder="123"/>
     </label>
 
-    <label class="field">
+    <label class="field size-sm">
       <span>Ruolo</span>
       <select name="ruolo">
         <option value="ALLIEVO">ALLIEVO</option>
@@ -568,7 +569,7 @@ export async function openPersonEditor({ personId, onSaved }) {
       </select>
     </label>
 
-     <label class="field">
+     <label class="field size-sm">
       <span>Nr tessera</span>
       <input name="nr_tessera" placeholder="..."/>
     </label>
@@ -590,12 +591,12 @@ export async function openPersonEditor({ personId, onSaved }) {
       <input name="email" type="email" placeholder="nome@email.it"/>
     </label>
 
-    <label class="field">
+    <label class="field size-md">
       <span>Codice fiscale</span>
       <input name="codice_fiscale" placeholder="..."/>
     </label>
 
-    <label class="field">
+    <label class="field size-xs">
       <span>Consenso WhatsApp</span>
       <select name="consenso_whatsapp">
         <option value="">—</option>
@@ -604,14 +605,23 @@ export async function openPersonEditor({ personId, onSaved }) {
       </select>
     </label>
 
+    <label class="field size-xs">
+      <span>Modulo Safeguarding</span>
+      <select name="safeguarding">
+        <option value="">—</option>
+        <option value="SI">Sì</option>
+        <option value="NO">No</option>
+      </select>
+    </label>
+
     <div class="section"><h3>Certificato</h3></div>
 
-    <label class="field">
+    <label class="field size-sm">
       <span>Scadenza (YYYY-MM-DD)</span>
       <input name="scadenza" type="date"/>
     </label>
 
-    <label class="field">
+    <label class="field size-md">
       <span>Fonte</span>
       <input name="fonte" placeholder="Import/Manuale"/>
     </label>
@@ -702,6 +712,7 @@ export async function openPersonEditor({ personId, onSaved }) {
         consenso_whatsapp: full.contact?.consenso_whatsapp === null || full.contact?.consenso_whatsapp === undefined
           ? ''
           : String(full.contact.consenso_whatsapp),
+        safeguarding: full.contact?.safeguarding ?? '',
 
         nr_tessera: full.membership?.nr_tessera ?? '',
         note: full.membership?.note ?? '',
@@ -787,6 +798,7 @@ export async function openPersonEditor({ personId, onSaved }) {
           telefono: strOrNull(fd.get('telefono')),
           email: strOrNull(fd.get('email')),
           codice_fiscale: strOrNull(fd.get('codice_fiscale')),
+          safeguarding: strOrNull(fd.get('safeguarding')),
           consenso_whatsapp: consensoBool,
         }),
         upsertMembership(id, {

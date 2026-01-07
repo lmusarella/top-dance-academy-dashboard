@@ -154,15 +154,15 @@ export async function bindTessereEvents() {
     const form = document.createElement('form');
     form.className = 'form';
     form.innerHTML = `
-      <label class="field">
+      <label class="field size-sm">
         <span>Nr tessera</span>
         <input name="nr_tessera" placeholder="..." />
       </label>
-      <label class="field">
+      <label class="field size-md">
         <span>Codice fiscale</span>
         <input name="codice_fiscale" placeholder="..." />
       </label>
-      <label class="field">
+      <label class="field size-xs">
         <span>Modulo Safeguarding</span>
         <input name="safeguarding" placeholder="..." />
       </label>
