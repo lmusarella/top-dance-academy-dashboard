@@ -559,10 +559,22 @@ export async function openPersonEditor({ personId, onSaved }) {
     
     </div>
 
-    <div class="form-row cols-1">
+    <div class="form-row cols-3">
       <label class="field">
         <span>Nome*</span>
         <input name="display_name" required placeholder="COGNOME NOME"/>
+      </label>
+      <label class="field">
+        <span>Ruolo</span>
+        <select name="ruolo">
+          <option value="ALLIEVO">ALLIEVO</option>
+          <option value="COLLABORATORE">COLLABORATORE</option>
+          <option value="ALTRO">ALTRO</option>
+        </select>
+      </label>
+       <label class="field">
+        <span>Codice fiscale</span>
+        <input name="codice_fiscale" placeholder="..."/>
       </label>
     </div>
 
@@ -571,34 +583,16 @@ export async function openPersonEditor({ personId, onSaved }) {
         <span>Nr quota</span>
         <input name="nr_quota" type="number" placeholder="123"/>
       </label>
-
-      <label class="field size-sm">
-        <span>Ruolo</span>
-        <select name="ruolo">
-          <option value="ALLIEVO">ALLIEVO</option>
-          <option value="COLLABORATORE">COLLABORATORE</option>
-          <option value="ALTRO">ALTRO</option>
-        </select>
-      </label>
-
-      <label class="field size-md">
-        <span>Codice fiscale</span>
-        <input name="codice_fiscale" placeholder="..."/>
-      </label>
-    </div>
-
-    <div class="form-row cols-2">
-      <label class="field size-sm">
-        <span>Nr tessera</span>
-        <input name="nr_tessera" placeholder="..."/>
-      </label>
-
-      <label class="field size-xs">
+ <label class="field size-sm">
         <span>Modulo Safeguarding</span>
         <select name="safeguarding">      
           <option value="true">🟢 Ok</option>
           <option value="false">❌ Assente</option>
         </select>
+      </label>
+      <label class="field size-md">
+        <span>Nr tessera</span>
+        <input name="nr_tessera" placeholder="..."/>
       </label>
     </div>
 
@@ -611,38 +605,34 @@ export async function openPersonEditor({ personId, onSaved }) {
 
     <div class="section"><h3>Contatti</h3></div>
 
-    <div class="form-row cols-2">
+    <div class="form-row cols-3">
       <label class="field">
         <span>Telefono</span>
         <input name="telefono" placeholder="+39 ..."/>
       </label>
-
+      <label class="field size-md">
+            <span>Consenso WhatsApp</span>
+            <select name="consenso_whatsapp">
+              <option value="">—</option>
+              <option value="true">Sì 👍</option>
+              <option value="false">No 👎</option>
+            </select>
+        </label>
       <label class="field">
         <span>Email</span>
         <input name="email" type="email" placeholder="nome@email.it"/>
       </label>
     </div>
-
-    <div class="form-row cols-1">
-      <label class="field size-xs">
-        <span>Consenso WhatsApp</span>
-        <select name="consenso_whatsapp">
-          <option value="">—</option>
-          <option value="true">Sì 👍</option>
-          <option value="false">No 👎</option>
-        </select>
-      </label>
-    </div>
-
+    
     <div class="section"><h3>Certificato</h3></div>
 
     <div class="form-row cols-2">
-      <label class="field size-sm">
+      <label class="field size-md">
         <span>Scadenza (YYYY-MM-DD)</span>
         <input name="scadenza" type="date"/>
       </label>
 
-      <label class="field size-md">
+      <label class="field">
         <span>Fonte</span>
         <input name="fonte" placeholder="Import/Manuale"/>
       </label>

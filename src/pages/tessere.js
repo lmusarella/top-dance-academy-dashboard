@@ -154,27 +154,31 @@ export async function bindTessereEvents() {
   async function openTesseraEditor(row) {
 
     const form = document.createElement('form');
-    form.className = 'form inline';
+    form.className = 'form grid-rows';
     form.innerHTML = `
-      <label class="field size-sm">
-        <span>Nr tessera</span>
-        <input name="nr_tessera" placeholder="..." />
-      </label>
-      <label class="field size-md">
-        <span>Codice fiscale</span>
-        <input name="codice_fiscale" placeholder="..." />
-      </label>
-       <label class="field size-xs">
-        <span>Modulo Safeguarding</span>
-        <select name="safeguarding">       
-          <option value="true">🟢 Ok</option>
-          <option value="false">❌ Assente</option>
-        </select>
-      </label>
+      <div class="form-row cols-3">
+            <label class="field">
+              <span>Nr tessera</span>
+              <input name="nr_tessera" placeholder="..." />
+            </label>
+            <label class="field">
+              <span>Codice fiscale</span>
+              <input name="codice_fiscale" placeholder="..." />
+            </label>
+            <label class="field size-xs">
+              <span>Modulo Safeguarding</span>
+              <select name="safeguarding">       
+                <option value="true">🟢 Ok</option>
+                <option value="false">❌ Assente</option>
+              </select>
+            </label>
+      </div>
+      
       <label class="field">
         <span>Note</span>
         <input name="note" placeholder="..." />
       </label>
+
       <div class="row actions">
         <button class="btn ghost" type="button" data-cancel>Annulla</button>
         <span></span>
