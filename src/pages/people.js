@@ -551,7 +551,13 @@ export async function openPersonEditor({ personId, onSaved }) {
   const form = document.createElement('form');
   form.className = 'form grid2';
   form.innerHTML = `
-    <div class="section"><h3>Informazioni Generali</h3></div>
+
+
+    <div class="section">
+    
+    <h3>Informazioni Generali</h3>
+    
+    </div>
 
     <label class="field">
       <span>Nome*</span>
@@ -572,13 +578,26 @@ export async function openPersonEditor({ personId, onSaved }) {
       </select>
     </label>
 
+    <label class="field size-md">
+      <span>Codice fiscale</span>
+      <input name="codice_fiscale" placeholder="..."/>
+    </label>
+
      <label class="field size-sm">
       <span>Nr tessera</span>
       <input name="nr_tessera" placeholder="..."/>
     </label>
 
+     <label class="field size-xs">
+      <span>Modulo Safeguarding</span>
+      <select name="safeguarding">      
+        <option value="true">🟢 Ok</option>
+        <option value="false">❌ Assente</option>
+      </select>
+    </label>
+
     <label class="field">
-      <span>Note iscrizione</span>
+      <span>Note Tesseramento</span>
       <input name="note" placeholder="..."/>
     </label>
 
@@ -594,10 +613,7 @@ export async function openPersonEditor({ personId, onSaved }) {
       <input name="email" type="email" placeholder="nome@email.it"/>
     </label>
 
-    <label class="field size-md">
-      <span>Codice fiscale</span>
-      <input name="codice_fiscale" placeholder="..."/>
-    </label>
+    
 
     <label class="field size-xs">
       <span>Consenso WhatsApp</span>
@@ -605,14 +621,6 @@ export async function openPersonEditor({ personId, onSaved }) {
         <option value="">—</option>
         <option value="true">Sì 👍</option>
         <option value="false">No 👎</option>
-      </select>
-    </label>
-
-    <label class="field size-xs">
-      <span>Modulo Safeguarding</span>
-      <select name="safeguarding">      
-        <option value="true">🟢 Ok</option>
-        <option value="false">❌ Assente</option>
       </select>
     </label>
 
@@ -715,7 +723,7 @@ export async function openPersonEditor({ personId, onSaved }) {
         consenso_whatsapp: full.contact?.consenso_whatsapp === null || full.contact?.consenso_whatsapp === undefined
           ? ''
           : String(full.contact.consenso_whatsapp),
-        safeguarding: full.membership?.safeguarding === null || full.membership?.safeguarding === undefined ? '': String(full.membership?.safeguarding),
+        safeguarding: full.membership?.safeguarding === null || full.membership?.safeguarding === undefined ? '' : String(full.membership?.safeguarding),
 
         nr_tessera: full.membership?.nr_tessera ?? '',
         note: full.membership?.note ?? '',
@@ -802,7 +810,7 @@ export async function openPersonEditor({ personId, onSaved }) {
       await Promise.all([
         upsertContact(id, {
           telefono: strOrNull(fd.get('telefono')),
-          email: strOrNull(fd.get('email')),        
+          email: strOrNull(fd.get('email')),
           consenso_whatsapp: consensoBool,
         }),
         upsertMembership(id, {
