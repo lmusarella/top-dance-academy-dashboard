@@ -603,8 +603,8 @@ export async function openPersonEditor({ personId, onSaved }) {
       <span>Consenso WhatsApp</span>
       <select name="consenso_whatsapp">
         <option value="">—</option>
-        <option value="true">Sì</option>
-        <option value="false">No</option>
+        <option value="true">Sì 👍</option>
+        <option value="false">No 👎</option>
       </select>
     </label>
 
@@ -612,8 +612,8 @@ export async function openPersonEditor({ personId, onSaved }) {
       <span>Modulo Safeguarding</span>
       <select name="safeguarding">
         <option value="">—</option>
-        <option value="true">Sì</option>
-        <option value="false">No</option>
+        <option value="true">🟢 Ok</option>
+        <option value="false">❌ Assente</option>
       </select>
     </label>
 

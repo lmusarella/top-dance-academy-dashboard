@@ -159,8 +159,8 @@ export async function bindTessereEvents() {
         <span>Modulo Safeguarding</span>
         <select name="safeguarding">
           <option value="">—</option>
-          <option value="true">Sì</option>
-          <option value="false">No</option>
+          <option value="true">🟢 Ok</option>
+          <option value="false">❌ Assente</option>
         </select>
       </label>
       <label class="field">
