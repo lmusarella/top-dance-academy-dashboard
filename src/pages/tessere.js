@@ -133,7 +133,7 @@ export async function bindTessereEvents() {
           <div class="meta">${r.ruolo ? esc(r.ruolo) : ''}</div>
         </td>
         <td>${esc(r.nr_tessera ?? '—')}</td>
-        <td>${esc(r.note ?? '—')}</td>
+        <td>${esc(!r.note || r.note == '' ? '—' : r.note)}</td>
         <td>${esc(r.codice_fiscale ?? '—')}</td>
         <td>${esc(r.safeguarding ? 'Sì': 'No')}</td>
         <td class="right">
