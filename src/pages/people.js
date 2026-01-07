@@ -107,9 +107,10 @@ export async function renderPeople() {
           <thead>
             <tr>
               <th>Socio</th>
+              <th>Codice fiscale</th>
               <th>Certificato</th>
               <th>Contatti</th>
-              <th>Codice fiscale</th>
+              <th>Safeguarding</th>
               <th>Corsi</th>          
               <th class="right">Azioni</th>
             </tr>
@@ -299,13 +300,14 @@ export async function bindPeopleEvents() {
       'display_name',
       'nr_quota',
       'nr_tessera',
+      'codice_fiscale',
       'ruolo',
       'giorni_rimanenti',
       'scadenza_fmt',
       'telefono',
       'email',
-      'codice_fiscale',
       'consenso_whatsapp',
+      'safeguarding',
       'corsi',
       'corso', // la mettiamo noi come stringa
     ];
@@ -376,9 +378,10 @@ export async function bindPeopleEvents() {
     return `
       <tr>
         <td>
-        <b>${esc(r.display_name)}</b>
+          <b>${esc(r.display_name)}</b>
          <div class="meta">${r.ruolo ? esc(r.ruolo) : ''} • Quota: ${r.nr_quota ?? '—'} • Tessera: ${esc(r.nr_tessera ?? '—')}</div>
         </td>
+        <td>${escapeHtml(r.codice_fiscale ?? '—')}</td>
         <td>
           <div class="meta">
             <span>${r.giorni_rimanenti == null ? '❌ Assente' : r.giorni_rimanenti < 0 ? '🔴 Scaduto' : '🟢 Ok'}</span>
@@ -398,7 +401,7 @@ export async function bindPeopleEvents() {
           </div>
           </td>
 
-        <td>${escapeHtml(r.codice_fiscale ?? '—')}</td>
+        <td>${escapeHtml(r.safeguarding ?? '—')}</td>
 
         <td>${chipsHtml(r.corsi)}</td>
        

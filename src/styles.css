@@ -174,7 +174,7 @@ a{ color:inherit; text-decoration:none; }
 .icon-btn:hover{ background: rgba(255,255,255,.08); }
 
 .search input{
-  width: min(620px, 72vw);
+  width: min(420px, 60vw);
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.16);

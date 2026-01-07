@@ -44,7 +44,7 @@ export async function renderTessere() {
             </select>
           </div>
         </div>
-        <div class="meta">Mostrati: <b id="tessereCount">0</b></div>
+        <div class="meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
       </div>
 
       <div class="table-controls">
@@ -70,9 +70,10 @@ export async function renderTessere() {
             <tr>
               <th>Quota</th>
               <th>Socio</th>
+              <th>Codice fiscale</th>
               <th>Tessera</th>
               <th>Contatti</th>
-              <th>Codice fiscale</th>
+              <th>Safeguarding</th>
             </tr>
           </thead>
           <tbody id="tessereBody"></tbody>
@@ -92,7 +93,8 @@ export async function bindTessereEvents() {
   const status = document.querySelector('#tessereStatus');
   const qInput = document.querySelector('#tessereQ');
   const roleFilter = document.querySelector('#tessereRoleFilter');
-  const countEl = document.querySelector('#tessereCount');
+  const shownEl = document.querySelector('#tessereShown');
+  const totalEl = document.querySelector('#tessereTotal');
   const btnExport = document.querySelector('#btnExportTessere');
   const pageSizeSelect = document.querySelector('#tesserePageSize');
   const pageInfo = document.querySelector('#tesserePageInfo');
@@ -112,8 +114,9 @@ export async function bindTessereEvents() {
     status.textContent = msg;
   }
 
-  function updateCount() {
-    if (countEl) countEl.textContent = String(shown);
+  function updateCount(total = null) {
+    if (shownEl) shownEl.textContent = String(shown);
+    if (totalEl && total !== null) totalEl.textContent = String(total);
   }
   function updatePagination() {
     const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
@@ -131,6 +134,7 @@ export async function bindTessereEvents() {
           <b>${esc(r.display_name)}</b>
           <div class="meta">${r.ruolo ? esc(r.ruolo) : ''}</div>
         </td>
+        <td>${esc(r.codice_fiscale ?? '—')}</td>
         <td>${esc(r.nr_tessera ?? '—')}</td>
         <td>
           <div class="meta">
@@ -143,7 +147,7 @@ export async function bindTessereEvents() {
             <span>Consenso WhatsApp: ${formatConsent(r.consenso_whatsapp)}</span>
           </div>
         </td>
-        <td>${esc(r.codice_fiscale ?? '—')}</td>
+        <td>${esc(r.safeguarding ?? '—')}</td>
       </tr>
     `;
   }
@@ -159,9 +163,12 @@ export async function bindTessereEvents() {
       if (rows.length === 0) {
         body.innerHTML = '';
         setStatus('Nessun risultato.');
+        shown = 0;
+        updateCount(totalFiltered);
       } else {
         body.innerHTML = rows.map(rowHtml).join('');
-        updateCount();
+        shown = rows.length;
+        updateCount(totalFiltered);
         setStatus(`Pagina ${currentPage}`);
       }
     } catch (e) {
@@ -176,8 +183,8 @@ export async function bindTessereEvents() {
     body.innerHTML = '';
     try {
       totalFiltered = await countPeople({ q, ruolo: role });
-      shown = totalFiltered;
-      updateCount();
+      shown = 0;
+      updateCount(totalFiltered);
       updatePagination();
       await loadPage();
     } catch (e) {
@@ -234,10 +241,11 @@ export async function bindTessereEvents() {
         'nr_quota',
         'nr_tessera',
         'ruolo',
+        'codice_fiscale',
         'telefono',
         'email',
-        'codice_fiscale',
         'consenso_whatsapp',
+        'safeguarding',
       ];
 
       const toExport = (all ?? []).map(r => {
