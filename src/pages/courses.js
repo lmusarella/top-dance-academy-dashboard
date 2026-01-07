@@ -31,14 +31,18 @@ export async function renderCourses() {
       <div class="panel-top">
         <div class="search">
           <input id="qCourse" placeholder="Cerca corso…" />
+           <select id="courseTypeFilter">
+            <option value="">Tutti</option>
+            <option value="BALLO">Ballo</option>
+            <option value="FITNESS">Fitness</option>
+            <option value="ARTI_MARZIALI">Arti marziali</option>
+          </select>
         </div>
-        <div class="meta">Risultati: <b id="coursesCount">—</b></div>
-        <div class="chips">
-          <button class="chip-btn active" data-type="">Tutti</button>
-          <button class="chip-btn" data-type="BALLO">Ballo</button>
-          <button class="chip-btn" data-type="FITNESS">Fitness</button>
-          <button class="chip-btn" data-type="ARTI_MARZIALI">Arti marziali</button>
+       
+        <div class="cert-filter">
+         
         </div>
+         <div class="meta">Risultati: <b id="coursesCount">—</b></div>
       </div>
 
       <div id="coursesList" class="accordion"></div>
@@ -51,8 +55,7 @@ export async function bindCoursesEvents() {
   const listEl = document.querySelector('#coursesList');
   const qInput = document.querySelector('#qCourse');
   const countEl = document.querySelector('#coursesCount');
-
-  const typeBtns = Array.from(document.querySelectorAll('.chip-btn'));
+  const typeSelect = document.querySelector('#courseTypeFilter');
 
   let allCourses = [];
   let q = '';
@@ -120,7 +123,7 @@ export async function bindCoursesEvents() {
   async function openCourseEditor(course = null) {
     const isEdit = !!course;
     const form = document.createElement('form');
-    form.className = 'form';
+    form.className = 'form inline';
     form.innerHTML = `
       <label class="field">
         <span>Nome corso*</span>
@@ -128,7 +131,7 @@ export async function bindCoursesEvents() {
       </label>
       <label class="field size-md">
         <span>Tipo corso</span>
-        <input name="tipo_corso" placeholder="BALLO / FITNESS / ARTI_MARZIALI" />
+        <input name="tipo_corso" required placeholder="BALLO / FITNESS / ARTI_MARZIALI" />
       </label>
       <label class="field">
         <span>Descrizione</span>
@@ -438,13 +441,9 @@ export async function bindCoursesEvents() {
   });
 
   // filter type chips
-  typeBtns.forEach(b => {
-    b.addEventListener('click', () => {
-      typeBtns.forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      tipo = b.getAttribute('data-type') || '';
-      applyFilterRender();
-    });
+  typeSelect?.addEventListener('change', () => {
+    tipo = typeSelect.value || '';
+    applyFilterRender();
   });
 
   const btnNewCourse = document.querySelector('#btnNewCourse');
