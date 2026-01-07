@@ -143,7 +143,7 @@ export async function bindTessereEvents() {
         <td>${esc(r.codice_fiscale ?? '—')}</td>
         <td>${esc(r.safeguarding ?? '—')}</td>
         <td class="right">
-          <button class="icon-btn sm" data-edit="${r.id}" title="Modifica">✎</button>
+          <button class="icon-btn sm" data-edit="${r.id ?? r.person_id}" title="Modifica">✎</button>
         </td>
       </tr>
     `;
@@ -308,6 +308,7 @@ export async function bindTessereEvents() {
     const editBtn = e.target.closest('button[data-edit]');
     if (!editBtn) return;
     const personId = Number(editBtn.getAttribute('data-edit'));
+    if (!Number.isFinite(personId)) return;
     const row = (cacheRows ?? []).find(r => Number(r.person_id ?? r.id) === personId);
     if (!row) return;
     await openTesseraEditor(row);

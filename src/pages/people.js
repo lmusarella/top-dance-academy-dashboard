@@ -1,7 +1,7 @@
 import {
   getPersonFull,
   upsertPerson, upsertContact, upsertMembership, upsertCertificate,
-  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses
+  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota
 } from '../services/api.js';
 
 import { toast } from '../ui/toast.js';
@@ -725,6 +725,10 @@ export async function openPersonEditor({ personId, onSaved }) {
     try {
       const allCourses = await listCourses({ onlyActive: true });
       renderCoursesOptions(allCourses, []);
+      const maxQuota = await getMaxQuota();
+      const nextQuota = Number.isFinite(Number(maxQuota)) ? Number(maxQuota) + 1 : '';
+      const quotaField = form.querySelector('[name="nr_quota"]');
+      if (quotaField && nextQuota !== '') quotaField.value = String(nextQuota);
     } catch (e) {
       coursesBox.innerHTML = `<span class="muted">Errore caricamento corsi</span>`;
     }

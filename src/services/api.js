@@ -72,6 +72,17 @@ export async function upsertCertificate(personId, payload) {
   if (error) throw error;
 }
 
+export async function getMaxQuota() {
+  const { data, error } = await supabase
+    .from('people')
+    .select('nr_quota')
+    .order('nr_quota', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.nr_quota ?? null;
+}
+
 export async function deletePerson(personId) {
   // cascade cancella contact/membership/certificate
   const { error } = await supabase.from('people').delete().eq('id', personId);
