@@ -45,39 +45,6 @@ export async function renderPeople() {
         </div>
 
         <div class="cert-filter">
-          <div id="certFilter" class="cert-filter-list">
-            <label class="cert-filter-item">
-              <input type="checkbox" value="ALL" checked />
-              <span>Tutti i certificati</span>
-            </label>
-            <label class="cert-filter-item">
-              <input type="checkbox" value="OK" />
-              <span>🟢 Ok</span>
-            </label>
-            <label class="cert-filter-item">
-              <input type="checkbox" value="IN_SCADENZA" />
-              <span>🔵 In scadenza (30 gg)</span>
-            </label>
-            <label class="cert-filter-item">
-              <input type="checkbox" value="EXPIRED" />
-              <span>🔴 Scaduti</span>
-            </label>
-            <label class="cert-filter-item">
-              <input type="checkbox" value="MISSING" />
-              <span>❌ Assenti</span>
-            </label>
-            <label class="cert-filter-item">
-              <input type="checkbox" value="EXPIRED_OR_MISSING" />
-              <span>🔴❌ Scaduti o assenti</span>
-            </label>
-            <label class="cert-filter-item">
-              <input type="checkbox" value="NON_RICHIESTO" />
-              <span>🟡 Esenti</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="cert-filter">
           <select id="roleFilter">
             <option value="ALL">Tutti i ruoli</option>
             <option value="ALLIEVO">Allievo</option>
@@ -94,7 +61,18 @@ export async function renderPeople() {
     <div class="panel-top">
       <div class="courses-filter-wrap">
         <button class="btn primary" type="button" id="btnCourses">Seleziona corsi</button>
+        <button class="btn ghost" type="button" id="btnCerts">Seleziona certificati</button>
         <div id="coursesChips" class="chips"></div>
+        <div id="certsFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
+          <div class="muted" id="certsFilterStatus">Carico certificati…</div>
+          <div id="certsFilterList" class="stack" style="gap:6px; margin-top:8px"></div>
+
+          <div class="row" style="justify-content:space-between; margin-top:10px">
+            <button class="btn ghost" type="button" id="btnCertsAll">Tutti</button>
+            <button class="btn ghost" type="button" id="btnCertsNone">Nessuno</button>
+            <button class="btn primary" type="button" id="btnCertsApply">Applica</button>
+          </div>
+        </div>
         <div id="coursesFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
           <div class="muted" id="coursesFilterStatus">Carico corsi…</div>
           <div id="coursesFilterList" class="stack" style="gap:6px; margin-top:8px"></div>
@@ -163,7 +141,13 @@ export async function bindPeopleEvents() {
   const prevBtn = document.querySelector('#peoplePrev');
   const nextBtn = document.querySelector('#peopleNext');
   const coursesChips = document.querySelector('#coursesChips');
-  const certFilter = document.querySelector('#certFilter');
+  const btnCerts = document.querySelector('#btnCerts');
+  const certsFilterBox = document.querySelector('#certsFilterBox');
+  const certsFilterStatus = document.querySelector('#certsFilterStatus');
+  const certsFilterList = document.querySelector('#certsFilterList');
+  const btnCertsAll = document.querySelector('#btnCertsAll');
+  const btnCertsNone = document.querySelector('#btnCertsNone');
+  const btnCertsApply = document.querySelector('#btnCertsApply');
   const btnCourses = document.querySelector('#btnCourses');
   const coursesFilterBox = document.querySelector('#coursesFilterBox');
   const coursesFilterStatus = document.querySelector('#coursesFilterStatus');
@@ -179,6 +163,7 @@ export async function bindPeopleEvents() {
   let currentPage = 1;
   let totalFiltered = 0;
   let certStatuses = ['ALL'];
+  let pendingCertStatuses = ['ALL'];
   let role = 'ALL';
   let selectedCourseIds = [];      // filtri attivi
   let pendingCourseIds = [];       // selezione “nel box” prima di Applica
@@ -211,6 +196,13 @@ export async function bindPeopleEvents() {
       btnCourses.textContent = 'Seleziona corsi';
     } else {
       btnCourses.textContent = `Corsi selezionati: ${selectedCourseIds.length}`;
+    }
+  }
+  function setBtnCertsLabel() {
+    if (!certStatuses.length || certStatuses.includes('ALL')) {
+      btnCerts.textContent = 'Seleziona certificati';
+    } else {
+      btnCerts.textContent = `Certificati selezionati: ${certStatuses.length}`;
     }
   }
   function mapCourseIdToName() {
@@ -253,6 +245,39 @@ export async function bindPeopleEvents() {
     renderSelectedCourseChips();
     await resetAndLoad();
   });
+  const CERT_STATUS_OPTIONS = [
+    { value: 'ALL', label: 'Tutti i certificati' },
+    { value: 'OK', label: '🟢 Ok' },
+    { value: 'IN_SCADENZA', label: '🔵 In scadenza (30 gg)' },
+    { value: 'EXPIRED', label: '🔴 Scaduti' },
+    { value: 'MISSING', label: '❌ Assenti' },
+    { value: 'EXPIRED_OR_MISSING', label: '🔴❌ Scaduti o assenti' },
+    { value: 'NON_RICHIESTO', label: '🟡 Esenti' },
+  ];
+
+  function renderCertsFilterList(selectedStatuses) {
+    const selected = new Set((selectedStatuses ?? []).map(String));
+    certsFilterStatus.textContent = '';
+    certsFilterList.innerHTML = CERT_STATUS_OPTIONS.map((status) => `
+      <label class="course-item">
+        <input type="checkbox" value="${status.value}" ${selected.has(status.value) ? 'checked' : ''}/>
+        <span>${esc(status.label)}</span>
+      </label>
+    `).join('');
+  }
+
+  function normalizePendingCertStatuses(values) {
+    const unique = Array.from(new Set((values ?? []).map(String)));
+    if (!unique.length || unique.includes('ALL')) return ['ALL'];
+    return unique;
+  }
+
+  function readPendingCertStatusesFromUI() {
+    const selected = Array.from(certsFilterList.querySelectorAll('input[type="checkbox"]:checked'))
+      .map(input => input.value)
+      .filter(Boolean);
+    return normalizePendingCertStatuses(selected);
+  }
   function renderCoursesFilterList(allCourses, checkedIds) {
     const checked = new Set((checkedIds ?? []).map(Number));
     const groups = new Map();
@@ -291,41 +316,20 @@ export async function bindPeopleEvents() {
       .map(x => Number(x.value))
       .filter(Number.isFinite);
   }
-  function readCertStatuses() {
-    const inputs = Array.from(certFilter?.querySelectorAll('input[type="checkbox"]') ?? []);
-    const selected = inputs
-      .filter(input => input.checked)
-      .map(input => input.value)
-      .filter(Boolean);
-
-    if (selected.includes('ALL') && selected.length > 1) {
-      inputs.forEach((input) => {
-        if (input.value !== 'ALL') input.checked = false;
+  function syncCertsAllBehavior(event) {
+    const input = event.target.closest('input[type="checkbox"]');
+    if (!input) return;
+    if (input.value === 'ALL' && input.checked) {
+      certsFilterList.querySelectorAll('input[type="checkbox"]').forEach((item) => {
+        if (item.value !== 'ALL') item.checked = false;
       });
-      return ['ALL'];
+      return;
     }
-
-    if (!selected.length) {
-      const allInput = inputs.find(input => input.value === 'ALL');
-      if (allInput) allInput.checked = true;
-      return ['ALL'];
+    if (input.value !== 'ALL' && input.checked) {
+      const allInput = certsFilterList.querySelector('input[type="checkbox"][value="ALL"]');
+      if (allInput) allInput.checked = false;
     }
-
-    if (!selected.includes('ALL')) return selected;
-
-    inputs.forEach((input) => {
-      if (input.value === 'ALL') input.checked = false;
-    });
-    return selected.filter(value => value !== 'ALL');
   }
-
-  async function updateCertStatuses() {
-    certStatuses = readCertStatuses();
-    currentPage = 1;
-    await resetAndLoad();
-  }
-
-  certFilter.addEventListener('change', updateCertStatuses);
   function corsiToString(corsi) {
     const arr = Array.isArray(corsi) ? corsi : [];
     return arr.map(x => x?.nome).filter(Boolean).join(', ');
@@ -395,6 +399,41 @@ export async function bindPeopleEvents() {
       coursesFilterStatus.textContent = 'Errore caricamento corsi';
     }
   });
+  btnCerts.addEventListener('click', async () => {
+    const isOpen = certsFilterBox.style.display !== 'none';
+    if (isOpen) {
+      certsFilterBox.style.display = 'none';
+      return;
+    }
+
+    certsFilterBox.style.display = 'block';
+    certsFilterStatus.textContent = 'Seleziona certificati…';
+    pendingCertStatuses = [...certStatuses];
+    renderCertsFilterList(pendingCertStatuses);
+  });
+
+  certsFilterList.addEventListener('change', (event) => {
+    syncCertsAllBehavior(event);
+  });
+
+  btnCertsAll.addEventListener('click', () => {
+    pendingCertStatuses = ['ALL'];
+    renderCertsFilterList(pendingCertStatuses);
+  });
+
+  btnCertsNone.addEventListener('click', () => {
+    pendingCertStatuses = [];
+    renderCertsFilterList(pendingCertStatuses);
+  });
+
+  btnCertsApply.addEventListener('click', async () => {
+    pendingCertStatuses = readPendingCertStatusesFromUI();
+    certStatuses = [...pendingCertStatuses];
+    setBtnCertsLabel();
+    certsFilterBox.style.display = 'none';
+    currentPage = 1;
+    await resetAndLoad();
+  });
 
   btnCoursesAll.addEventListener('click', async () => {
     const all = await ensureCoursesLoaded();
@@ -422,6 +461,7 @@ export async function bindPeopleEvents() {
 
   // label iniziale
   setBtnCoursesLabel();
+  setBtnCertsLabel();
 
   function rowHtml(r) {
 
