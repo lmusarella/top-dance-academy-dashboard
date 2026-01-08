@@ -299,7 +299,7 @@ export async function listCertificatesPaged({
 export async function listCoursesWithCounts() {
   const { data, error } = await supabase
     .from('v_courses_with_counts')
-    .select('id, nome_corso, tipo_corso, descrizione, istruttori, is_active, participants_count')
+    .select('id, nome_corso, tipo_corso, descrizione, istruttori, is_active, cert_required, participants_count')
     .order('tipo_corso', { ascending: true })
     .order('nome_corso', { ascending: true });
 

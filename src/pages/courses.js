@@ -74,11 +74,11 @@ export async function bindCoursesEvents() {
   }
 
   function courseItem(c) {
-  const teachersTxt = c.istruttori ? esc(c.istruttori) : '—';
-  const desc = c.descrizione ? `<div class="meta">${esc(c.descrizione)}</div>` : '';
-  const countTxt = `${c.participants_count ?? 0} partecipanti`;
+    const teachersTxt = c.istruttori ? esc(c.istruttori) : '—';
+    const desc = c.descrizione ? `<div class="meta">Note Corso: ${esc(c.descrizione)}</div>` : '';
+    const countTxt = `${c.participants_count ?? 0} partecipanti`;
 
-  return `
+    return `
     <details class="acc-item" data-id="${c.id}">
       <summary class="acc-sum">
         <div class="acc-left">
@@ -97,7 +97,7 @@ export async function bindCoursesEvents() {
       </summary>
 
       <div class="acc-body">
-        ${desc}
+       ${c.cert_required ? '<div class="meta">Certificato Medico Obbligatorio ⚠️ </div> ' : ''} ${desc}
         <div class="acc-actions">
           <button class="btn tiny primary" data-add>Aggiungi membri</button>
         </div>
@@ -107,7 +107,7 @@ export async function bindCoursesEvents() {
       </div>
     </details>
   `;
-}
+  }
 
   function applyFilterRender() {
     const s = (q || '').trim().toLowerCase();
@@ -146,6 +146,14 @@ export async function bindCoursesEvents() {
         <input name="descrizione" placeholder="Descrizione breve" />
       </label>
      
+       <div class="form-row cols-2">
+        <label class="field size-sm">
+        <span>Certificato Obbligatorio</span>
+        <select name="cert_required">
+          <option value="true">Sì</option>
+          <option value="false">No</option>
+        </select>
+      </label>
       <label class="field size-xs">
         <span>Attivo</span>
         <select name="is_active">
@@ -153,6 +161,8 @@ export async function bindCoursesEvents() {
           <option value="false">No</option>
         </select>
       </label>
+      
+      </div>
       <div class="row actions">
         <button class="btn ghost" type="button" data-cancel>Annulla</button>
         <span></span>
@@ -179,6 +189,7 @@ export async function bindCoursesEvents() {
         descrizione: course.descrizione ?? '',
         istruttori: course.istruttori ?? '',
         is_active: String(course.is_active ?? true),
+        cert_required: String(course.cert_required ?? true),
       });
     }
 
@@ -199,6 +210,7 @@ export async function bindCoursesEvents() {
         descrizione: String(fd.get('descrizione') || '').trim() || null,
         istruttori: String(fd.get('istruttori') || '').trim() || null,
         is_active: String(fd.get('is_active')) === 'true',
+        cert_required: String(fd.get('cert_required')) === 'true',
       };
 
       try {
