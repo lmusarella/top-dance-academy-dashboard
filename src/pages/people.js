@@ -292,10 +292,20 @@ export async function bindPeopleEvents() {
 
     return selected;
   }
-  certFilter.addEventListener('change', async () => {
+  async function updateCertStatuses() {
     certStatuses = readCertStatuses();
     currentPage = 1;
     await resetAndLoad();
+  }
+
+  certFilter.addEventListener('change', updateCertStatuses);
+
+  certFilter.addEventListener('mousedown', (event) => {
+    const option = event.target.closest('option');
+    if (!option) return;
+    event.preventDefault();
+    option.selected = !option.selected;
+    updateCertStatuses();
   });
   function corsiToString(corsi) {
     const arr = Array.isArray(corsi) ? corsi : [];
