@@ -52,6 +52,7 @@ export async function renderPeople() {
             <option value="EXPIRED">🔴 Scaduti</option>
             <option value="MISSING">❌ Assenti</option>
             <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
+            <option value="NON_RICHIESTO">🟡 Esenti</option>
           </select>
         </div>
 
