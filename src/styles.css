@@ -547,7 +547,8 @@ select option{
 }
 
 /* --- COURSES FILTER PANEL --- */
-#coursesFilterBox{
+#coursesFilterBox,
+#certsFilterBox{
   width: 400px;
   max-height: 340px;
   overflow: auto;
@@ -556,7 +557,8 @@ select option{
   backdrop-filter: blur(14px);
 }
 
-#coursesFilterList{
+#coursesFilterList,
+#certsFilterList{
   display: grid;
   gap: 12px;
 }
@@ -610,7 +612,8 @@ select option{
 }
 
 /* barra bottoni dentro al box */
-#coursesFilterBox .row{
+#coursesFilterBox .row,
+#certsFilterBox .row{
   position: sticky;
   bottom: 0;
   padding-top: 10px;
@@ -624,7 +627,8 @@ select option{
 }
 
 /* il box non deve occupare spazio nel layout */
-#coursesFilterBox{
+#coursesFilterBox,
+#certsFilterBox{
   display: none;              /* lo gestisci via JS */
   position: absolute;
   top: calc(100% + 8px);
@@ -638,7 +642,8 @@ select option{
 }
 
 /* se vuoi aprirlo a destra quando sei vicino al bordo */
-#coursesFilterBox.align-right{
+#coursesFilterBox.align-right,
+#certsFilterBox.align-right{
   left: auto;
   right: 0;
 }

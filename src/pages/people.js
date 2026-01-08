@@ -63,6 +63,7 @@ export async function renderPeople() {
         <button class="btn primary" type="button" id="btnCourses">Seleziona corsi</button>
         <button class="btn ghost" type="button" id="btnCerts">Seleziona certificati</button>
         <div id="coursesChips" class="chips"></div>
+        <div id="certsChips" class="chips"></div>
         <div id="certsFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
           <div class="muted" id="certsFilterStatus">Carico certificati…</div>
           <div id="certsFilterList" class="stack" style="gap:6px; margin-top:8px"></div>
@@ -141,6 +142,7 @@ export async function bindPeopleEvents() {
   const prevBtn = document.querySelector('#peoplePrev');
   const nextBtn = document.querySelector('#peopleNext');
   const coursesChips = document.querySelector('#coursesChips');
+  const certsChips = document.querySelector('#certsChips');
   const btnCerts = document.querySelector('#btnCerts');
   const certsFilterBox = document.querySelector('#certsFilterBox');
   const certsFilterStatus = document.querySelector('#certsFilterStatus');
@@ -233,6 +235,27 @@ export async function bindPeopleEvents() {
       })
       .join('');
   }
+  function renderSelectedCertChips() {
+    if (!certsChips) return;
+    if (!certStatuses.length || certStatuses.includes('ALL')) {
+      certsChips.innerHTML = '';
+      return;
+    }
+
+    const labelByValue = new Map(CERT_STATUS_OPTIONS.map((option) => [option.value, option.label]));
+
+    certsChips.innerHTML = certStatuses
+      .map(value => {
+        const label = labelByValue.get(value) ?? value;
+        return `
+        <span class="chip" data-cert-status="${value}">
+          <span>${esc(label)}</span>
+          <span class="x" title="Rimuovi" data-remove-cert="${value}">×</span>
+        </span>
+      `;
+      })
+      .join('');
+  }
   coursesChips?.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-remove]');
     if (!btn) return;
@@ -243,6 +266,18 @@ export async function bindPeopleEvents() {
     selectedCourseIds = selectedCourseIds.filter(x => Number(x) !== id);
     setBtnCoursesLabel();
     renderSelectedCourseChips();
+    await resetAndLoad();
+  });
+  certsChips?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-remove-cert]');
+    if (!btn) return;
+
+    const value = btn.getAttribute('data-remove-cert');
+    certStatuses = certStatuses.filter(status => status !== value);
+    if (!certStatuses.length) certStatuses = ['ALL'];
+
+    setBtnCertsLabel();
+    renderSelectedCertChips();
     await resetAndLoad();
   });
   const CERT_STATUS_OPTIONS = [
@@ -258,12 +293,19 @@ export async function bindPeopleEvents() {
   function renderCertsFilterList(selectedStatuses) {
     const selected = new Set((selectedStatuses ?? []).map(String));
     certsFilterStatus.textContent = '';
-    certsFilterList.innerHTML = CERT_STATUS_OPTIONS.map((status) => `
-      <label class="course-item">
-        <input type="checkbox" value="${status.value}" ${selected.has(status.value) ? 'checked' : ''}/>
-        <span>${esc(status.label)}</span>
-      </label>
-    `).join('');
+    certsFilterList.innerHTML = `
+      <div class="course-group">
+        <div class="meta"><b>Certificati</b></div>
+        <div class="course-grid">
+          ${CERT_STATUS_OPTIONS.map((status) => `
+            <label class="course-item">
+              <input type="checkbox" value="${status.value}" ${selected.has(status.value) ? 'checked' : ''}/>
+              <span>${esc(status.label)}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+    `;
   }
 
   function normalizePendingCertStatuses(values) {
@@ -430,6 +472,7 @@ export async function bindPeopleEvents() {
     pendingCertStatuses = readPendingCertStatusesFromUI();
     certStatuses = [...pendingCertStatuses];
     setBtnCertsLabel();
+    renderSelectedCertChips();
     certsFilterBox.style.display = 'none';
     currentPage = 1;
     await resetAndLoad();
@@ -462,6 +505,7 @@ export async function bindPeopleEvents() {
   // label iniziale
   setBtnCoursesLabel();
   setBtnCertsLabel();
+  renderSelectedCertChips();
 
   function rowHtml(r) {
 
