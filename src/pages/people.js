@@ -60,8 +60,8 @@ export async function renderPeople() {
 
     <div class="panel-top">
       <div class="courses-filter-wrap">
-        <button class="btn primary" type="button" id="btnCourses">Seleziona corsi</button>
-        <button class="btn ghost" type="button" id="btnCerts">Seleziona certificati</button>
+        <button class="btn primary" type="button" id="btnCourses">Filtra per corsi</button>
+        <button class="btn primary" type="button" id="btnCerts">Filtra per certificati</button>
         <div id="coursesChips" class="chips"></div>
         <div id="certsChips" class="chips"></div>
         <div id="certsFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
@@ -195,14 +195,14 @@ export async function bindPeopleEvents() {
   }
   function setBtnCoursesLabel() {
     if (!selectedCourseIds.length) {
-      btnCourses.textContent = 'Seleziona corsi';
+      btnCourses.textContent = 'Filtra per corsi';
     } else {
       btnCourses.textContent = `Corsi selezionati: ${selectedCourseIds.length}`;
     }
   }
   function setBtnCertsLabel() {
     if (!certStatuses.length || certStatuses.includes('ALL')) {
-      btnCerts.textContent = 'Seleziona certificati';
+      btnCerts.textContent = 'Filtra per certificati';
     } else {
       btnCerts.textContent = `Certificati selezionati: ${certStatuses.length}`;
     }
@@ -286,7 +286,6 @@ export async function bindPeopleEvents() {
     { value: 'IN_SCADENZA', label: '🔵 In scadenza (30 gg)' },
     { value: 'EXPIRED', label: '🔴 Scaduti' },
     { value: 'MISSING', label: '❌ Assenti' },
-    { value: 'EXPIRED_OR_MISSING', label: '🔴❌ Scaduti o assenti' },
     { value: 'NON_RICHIESTO', label: '🟡 Esenti' },
   ];
 
@@ -295,7 +294,7 @@ export async function bindPeopleEvents() {
     certsFilterStatus.textContent = '';
     certsFilterList.innerHTML = `
       <div class="course-group">
-        <div class="meta"><b>Certificati</b></div>
+        <div class="meta"><b>Stato Certificati</b></div>
         <div class="course-grid">
           ${CERT_STATUS_OPTIONS.map((status) => `
             <label class="course-item">
@@ -517,7 +516,7 @@ export async function bindPeopleEvents() {
         </td>
         <td>
           <div class="meta">
-            <span>${r.giorni_rimanenti == null ? '❌ Assente' : r.giorni_rimanenti < 0 ? '🔴 Scaduto' : '🟢 Ok'}</span>
+            <span>${r.cert_status == 'MISSING' ? '❌ Assente' : r.cert_status == 'EXPIRED' ? '🔴 Scaduto' : r.cert_status == 'IN_SCADENZA' ? '🔵 In Scadenza':r.cert_status == 'NON_RICHIESTO' ? '🟡 Esente' : '🟢 Ok'}</span>
           </div>
           <div class="meta">
              <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
