@@ -697,6 +697,11 @@ select option{
   min-width: 200px;
   padding: 0 12px;
 }
+.search-row select[multiple]{
+  height: auto;
+  min-height: 44px;
+  padding: 8px 12px;
+}
 
 /* mobile */
 @media (max-width: 640px){

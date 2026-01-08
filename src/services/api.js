@@ -94,7 +94,7 @@ export async function listPeoplePaged({
   limit = 50,
   offset = 0,
   certStatus = 'ALL',
-  ruolo = 'ALL',   // ALL | OK | EXPIRED | MISSING | EXPIRED_OR_MISSING
+  ruolo = 'ALL',   // ALL | OK | EXPIRED | MISSING | EXPIRED_OR_MISSING | array
   courseIds = []          // array di int
 } = {}) {
   let query = supabase
@@ -104,14 +104,9 @@ export async function listPeoplePaged({
     .range(offset, offset + limit - 1);
 
   // --- filtri certificato ---
-  if (certStatus && certStatus !== 'ALL') {
-    if (certStatus === 'EXPIRED_OR_MISSING') {
-      query = query.in('cert_status', ['EXPIRED', 'MISSING']);
-    } else if (certStatus === 'OK') {
-      query = query.in('cert_status', ['OK', 'IN_SCADENZA']);
-    } else {
-      query = query.eq('cert_status', certStatus);
-    }
+  const certStatuses = normalizeCertStatuses(certStatus);
+  if (certStatuses.length) {
+    query = query.in('cert_status', certStatuses);
   }
 
     // --- filtri ruolo ---
@@ -215,14 +210,9 @@ export async function countPeople({
     .from('v_people_search')
     .select('id', { count: 'exact', head: true });
 
-  if (certStatus && certStatus !== 'ALL') {
-    if (certStatus === 'EXPIRED_OR_MISSING') {
-      query = query.in('cert_status', ['EXPIRED', 'MISSING']);
-    } else if (certStatus === 'OK') {
-      query = query.in('cert_status', ['OK', 'IN_SCADENZA']);
-    } else {
-      query = query.eq('cert_status', certStatus);
-    }
+  const certStatuses = normalizeCertStatuses(certStatus);
+  if (certStatuses.length) {
+    query = query.in('cert_status', certStatuses);
   }
 
   const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
@@ -258,6 +248,27 @@ export async function countPeople({
   const { count, error } = await query;
   if (error) throw error;
   return count ?? 0;
+}
+
+function normalizeCertStatuses(certStatus) {
+  const rawStatuses = Array.isArray(certStatus) ? certStatus : [certStatus];
+  const cleaned = rawStatuses.filter(Boolean);
+  if (!cleaned.length || cleaned.includes('ALL')) return [];
+
+  const normalized = new Set();
+  for (const status of cleaned) {
+    if (status === 'EXPIRED_OR_MISSING') {
+      normalized.add('EXPIRED');
+      normalized.add('MISSING');
+    } else if (status === 'OK') {
+      normalized.add('OK');
+      normalized.add('IN_SCADENZA');
+    } else {
+      normalized.add(status);
+    }
+  }
+
+  return Array.from(normalized);
 }
 
 export async function fetchAllPaged(fetchPageFn, { pageSize = 500 } = {}) {

@@ -45,10 +45,10 @@ export async function renderPeople() {
         </div>
 
         <div class="cert-filter">
-          <select id="certFilter">
-            <option value="ALL">Tutti i certificati</option>
+          <select id="certFilter" multiple size="4">
+            <option value="ALL" selected>Tutti i certificati</option>
             <option value="OK">🟢 Ok</option>
-             <option value="IN_SCADENZA">🔵 In scadenza (30 gg)</option>
+            <option value="IN_SCADENZA">🔵 In scadenza (30 gg)</option>
             <option value="EXPIRED">🔴 Scaduti</option>
             <option value="MISSING">❌ Assenti</option>
             <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
@@ -157,7 +157,7 @@ export async function bindPeopleEvents() {
   let pageSize = Number(pageSizeSelect?.value || PAGE_DEFAULT);
   let currentPage = 1;
   let totalFiltered = 0;
-  let certStatus = 'ALL';
+  let certStatuses = ['ALL'];
   let role = 'ALL';
   let selectedCourseIds = [];      // filtri attivi
   let pendingCourseIds = [];       // selezione “nel box” prima di Applica
@@ -270,8 +270,30 @@ export async function bindPeopleEvents() {
       .map(x => Number(x.value))
       .filter(Number.isFinite);
   }
+  function readCertStatuses() {
+    const options = Array.from(certFilter?.options ?? []);
+    const selected = options
+      .filter(option => option.selected)
+      .map(option => option.value)
+      .filter(Boolean);
+
+    if (selected.includes('ALL') && selected.length > 1) {
+      for (const option of options) {
+        if (option.value === 'ALL') option.selected = false;
+      }
+      return selected.filter(value => value !== 'ALL');
+    }
+
+    if (!selected.length) {
+      const allOption = options.find(option => option.value === 'ALL');
+      if (allOption) allOption.selected = true;
+      return ['ALL'];
+    }
+
+    return selected;
+  }
   certFilter.addEventListener('change', async () => {
-    certStatus = certFilter.value || 'ALL';
+    certStatuses = readCertStatuses();
     currentPage = 1;
     await resetAndLoad();
   });
@@ -289,7 +311,7 @@ export async function bindPeopleEvents() {
 
     const all = await fetchAllPaged(({ limit, offset }) =>
       listPeoplePaged({
-        q: q, limit, offset, certStatus, ruolo: role,
+        q: q, limit, offset, certStatus: certStatuses, ruolo: role,
         courseIds: selectedCourseIds
       })
     );
@@ -423,7 +445,7 @@ export async function bindPeopleEvents() {
     try {
       const offset = (currentPage - 1) * pageSize;
       const rows = await listPeoplePaged({
-        q, limit: pageSize, offset, certStatus, ruolo: role,
+        q, limit: pageSize, offset, certStatus: certStatuses, ruolo: role,
         courseIds: selectedCourseIds
       });
       if (rows.length === 0) {
@@ -445,9 +467,12 @@ export async function bindPeopleEvents() {
     body.innerHTML = '';
     try {
       const totalAll = await countPeople({ q: '' });  // totale soci
-      const hasFilters = q || certStatus !== 'ALL' || selectedCourseIds.length > 0 || role !== 'ALL';
+      const hasFilters = q
+        || (certStatuses?.length && !certStatuses.includes('ALL'))
+        || selectedCourseIds.length > 0
+        || role !== 'ALL';
       totalFiltered = hasFilters
-        ? await countPeople({ q, certStatus, courseIds: selectedCourseIds, ruolo: role })
+        ? await countPeople({ q, certStatus: certStatuses, courseIds: selectedCourseIds, ruolo: role })
         : totalAll;
       setCounts({ totalAll, totalShown: totalFiltered });
       updatePagination();
