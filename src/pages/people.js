@@ -45,15 +45,36 @@ export async function renderPeople() {
         </div>
 
         <div class="cert-filter">
-          <select id="certFilter" multiple size="4">
-            <option value="ALL" selected>Tutti i certificati</option>
-            <option value="OK">🟢 Ok</option>
-            <option value="IN_SCADENZA">🔵 In scadenza (30 gg)</option>
-            <option value="EXPIRED">🔴 Scaduti</option>
-            <option value="MISSING">❌ Assenti</option>
-            <option value="EXPIRED_OR_MISSING">🔴❌ Scaduti o assenti</option>
-            <option value="NON_RICHIESTO">🟡 Esenti</option>
-          </select>
+          <div id="certFilter" class="cert-filter-list">
+            <label class="cert-filter-item">
+              <input type="checkbox" value="ALL" checked />
+              <span>Tutti i certificati</span>
+            </label>
+            <label class="cert-filter-item">
+              <input type="checkbox" value="OK" />
+              <span>🟢 Ok</span>
+            </label>
+            <label class="cert-filter-item">
+              <input type="checkbox" value="IN_SCADENZA" />
+              <span>🔵 In scadenza (30 gg)</span>
+            </label>
+            <label class="cert-filter-item">
+              <input type="checkbox" value="EXPIRED" />
+              <span>🔴 Scaduti</span>
+            </label>
+            <label class="cert-filter-item">
+              <input type="checkbox" value="MISSING" />
+              <span>❌ Assenti</span>
+            </label>
+            <label class="cert-filter-item">
+              <input type="checkbox" value="EXPIRED_OR_MISSING" />
+              <span>🔴❌ Scaduti o assenti</span>
+            </label>
+            <label class="cert-filter-item">
+              <input type="checkbox" value="NON_RICHIESTO" />
+              <span>🟡 Esenti</span>
+            </label>
+          </div>
         </div>
 
         <div class="cert-filter">
@@ -271,27 +292,33 @@ export async function bindPeopleEvents() {
       .filter(Number.isFinite);
   }
   function readCertStatuses() {
-    const options = Array.from(certFilter?.options ?? []);
-    const selected = options
-      .filter(option => option.selected)
-      .map(option => option.value)
+    const inputs = Array.from(certFilter?.querySelectorAll('input[type="checkbox"]') ?? []);
+    const selected = inputs
+      .filter(input => input.checked)
+      .map(input => input.value)
       .filter(Boolean);
 
     if (selected.includes('ALL') && selected.length > 1) {
-      for (const option of options) {
-        if (option.value === 'ALL') option.selected = false;
-      }
-      return selected.filter(value => value !== 'ALL');
-    }
-
-    if (!selected.length) {
-      const allOption = options.find(option => option.value === 'ALL');
-      if (allOption) allOption.selected = true;
+      inputs.forEach((input) => {
+        if (input.value !== 'ALL') input.checked = false;
+      });
       return ['ALL'];
     }
 
-    return selected;
+    if (!selected.length) {
+      const allInput = inputs.find(input => input.value === 'ALL');
+      if (allInput) allInput.checked = true;
+      return ['ALL'];
+    }
+
+    if (!selected.includes('ALL')) return selected;
+
+    inputs.forEach((input) => {
+      if (input.value === 'ALL') input.checked = false;
+    });
+    return selected.filter(value => value !== 'ALL');
   }
+
   async function updateCertStatuses() {
     certStatuses = readCertStatuses();
     currentPage = 1;
@@ -299,14 +326,6 @@ export async function bindPeopleEvents() {
   }
 
   certFilter.addEventListener('change', updateCertStatuses);
-
-  certFilter.addEventListener('mousedown', (event) => {
-    const option = event.target.closest('option');
-    if (!option) return;
-    event.preventDefault();
-    option.selected = !option.selected;
-    updateCertStatuses();
-  });
   function corsiToString(corsi) {
     const arr = Array.isArray(corsi) ? corsi : [];
     return arr.map(x => x?.nome).filter(Boolean).join(', ');
