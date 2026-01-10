@@ -15,6 +15,12 @@ export async function signOut() {
 }
 
 export async function resetAnnualQuotas() {
+  const { error: coursesError } = await supabase
+    .from('person_courses')
+    .delete()
+    .gt('person_id', 0);
+  if (coursesError) throw coursesError;
+
   const { error } = await supabase
     .from('people')
     .update({ nr_quota: null })

@@ -24,7 +24,8 @@ export async function renderSettings() {
               <div>
                 <div class="settings-title">Reset annuale quote</div>
                 <div class="settings-desc muted">
-                  Azzera la colonna quota per tutti gli iscritti. Operazione irreversibile.
+                  Azzera la colonna quota per tutti gli iscritti e rimuove le associazioni ai corsi.
+                  Operazione irreversibile.
                 </div>
               </div>
               <span class="settings-tag danger">Operazione critica</span>
