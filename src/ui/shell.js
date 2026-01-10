@@ -1,9 +1,24 @@
-import { isLoggedIn } from '../services/state.js';
-import { signOut } from '../services/api.js';
+import { isLoggedIn, state } from '../services/state.js';
+import { resetAnnualQuotas, signOut } from '../services/api.js';
+import { confirmDialog, openModal } from './modal.js';
 import { toast } from './toast.js';
 
 export function renderShell(innerHtml) {
   const logged = isLoggedIn();
+  const session = state.session;
+  const userLabel = session?.user?.user_metadata?.full_name
+    || session?.user?.user_metadata?.name
+    || session?.user?.email
+    || 'Utente';
+  const date = new Date();
+  const dateLabel = capitalizeFirst(
+    date.toLocaleDateString('it-IT', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    })
+  );
 
   return `
   <div class="app-shell">
@@ -33,7 +48,15 @@ export function renderShell(innerHtml) {
         <button class="icon-btn mobile-only" id="menuBtn" title="Menu">☰</button>
         <div class="topbar-title">${logged ? 'Top Dance Academy' : 'Accesso'}</div>
         <div class="spacer"></div>
-       
+        ${logged
+    ? `
+          <div class="topbar-info">
+            <div class="topbar-pill" id="currentDate" title="Data corrente">📅 ${dateLabel}</div>
+            <div class="topbar-pill" id="currentUser" title="Utente loggato">👤 ${userLabel}</div>
+            <button class="icon-btn" id="settingsBtn" title="Impostazioni">⚙️</button>
+          </div>
+        `
+    : ''}
       </header>
 
       <main class="content">
@@ -72,4 +95,53 @@ export function bindShellEvents() {
       sb?.classList.remove('open');
     });
   });
+
+  const settingsBtn = document.querySelector('#settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      const content = document.createElement('div');
+      content.className = 'settings-panel';
+      content.innerHTML = `
+        <div class="settings-section">
+          <div class="settings-title">Reset annuale quote</div>
+          <div class="settings-desc muted">
+            Azzera la colonna quota per tutti gli iscritti. Operazione irreversibile.
+          </div>
+          <button class="btn danger" data-reset>Reset quote</button>
+        </div>
+      `;
+
+      const { close } = openModal({ title: 'Impostazioni', content });
+      const resetBtn = content.querySelector('[data-reset]');
+
+      resetBtn.addEventListener('click', async () => {
+        const confirmed = await confirmDialog({
+          title: 'Attenzione',
+          message: 'Effettuando il reset delle quote non sarà possibile recuperare i dati degli iscritti.',
+          details: 'Sicuri di procedere?',
+          confirmText: 'Sì, resetta',
+          cancelText: 'Annulla',
+          danger: true,
+        });
+        if (!confirmed) return;
+
+        resetBtn.disabled = true;
+        try {
+          await resetAnnualQuotas();
+          toast('Quote annuali azzerate', 'ok');
+          close();
+        } catch (e) {
+          toast(e?.message ?? 'Errore reset quote', 'error');
+        } finally {
+          resetBtn.disabled = false;
+        }
+      });
+    });
+  }
+}
+
+function capitalizeFirst(value) {
+  const text = String(value ?? '');
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

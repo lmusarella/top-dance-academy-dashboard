@@ -13,6 +13,14 @@ export async function signOut() {
     throw error;
   }
 }
+
+export async function resetAnnualQuotas() {
+  const { error } = await supabase
+    .from('people')
+    .update({ nr_quota: null })
+    .not('nr_quota', 'is', null);
+  if (error) throw error;
+}
 export async function getDashboardRows(limit = 500) {
   const { data, error } = await supabase
     .from('v_cert_scadenze')
