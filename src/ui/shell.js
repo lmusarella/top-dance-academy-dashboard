@@ -1,9 +1,23 @@
-import { isLoggedIn } from '../services/state.js';
+import { isLoggedIn, state } from '../services/state.js';
 import { signOut } from '../services/api.js';
 import { toast } from './toast.js';
 
 export function renderShell(innerHtml) {
   const logged = isLoggedIn();
+  const session = state.session;
+  const userLabel = session?.user?.user_metadata?.full_name
+    || session?.user?.user_metadata?.name
+    || session?.user?.email
+    || 'Utente';
+  const date = new Date();
+  const dateLabel = capitalizeFirst(
+    date.toLocaleDateString('it-IT', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    })
+  );
 
   return `
   <div class="app-shell">
@@ -33,7 +47,15 @@ export function renderShell(innerHtml) {
         <button class="icon-btn mobile-only" id="menuBtn" title="Menu">☰</button>
         <div class="topbar-title">${logged ? 'Top Dance Academy' : 'Accesso'}</div>
         <div class="spacer"></div>
-       
+        ${logged
+    ? `
+          <div class="topbar-info">
+            <div class="topbar-pill" id="currentDate" title="Data corrente">📅 ${dateLabel}</div>
+            <div class="topbar-pill" id="currentUser" title="Utente loggato">👤 ${userLabel}</div>
+            <button class="icon-btn" id="settingsBtn" title="Impostazioni">⚙️</button>
+          </div>
+        `
+    : ''}
       </header>
 
       <main class="content">
@@ -72,4 +94,17 @@ export function bindShellEvents() {
       sb?.classList.remove('open');
     });
   });
+
+  const settingsBtn = document.querySelector('#settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      location.hash = '#/settings';
+    });
+  }
+}
+
+function capitalizeFirst(value) {
+  const text = String(value ?? '');
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
