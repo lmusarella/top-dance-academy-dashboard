@@ -1,6 +1,5 @@
 import { isLoggedIn, state } from '../services/state.js';
-import { resetAnnualQuotas, signOut } from '../services/api.js';
-import { confirmDialog, openModal } from './modal.js';
+import { signOut } from '../services/api.js';
 import { toast } from './toast.js';
 
 export function renderShell(innerHtml) {
@@ -99,43 +98,7 @@ export function bindShellEvents() {
   const settingsBtn = document.querySelector('#settingsBtn');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', () => {
-      const content = document.createElement('div');
-      content.className = 'settings-panel';
-      content.innerHTML = `
-        <div class="settings-section">
-          <div class="settings-title">Reset annuale quote</div>
-          <div class="settings-desc muted">
-            Azzera la colonna quota per tutti gli iscritti. Operazione irreversibile.
-          </div>
-          <button class="btn danger" data-reset>Reset quote</button>
-        </div>
-      `;
-
-      const { close } = openModal({ title: 'Impostazioni', content });
-      const resetBtn = content.querySelector('[data-reset]');
-
-      resetBtn.addEventListener('click', async () => {
-        const confirmed = await confirmDialog({
-          title: 'Attenzione',
-          message: 'Effettuando il reset delle quote non sarà possibile recuperare i dati degli iscritti.',
-          details: 'Sicuri di procedere?',
-          confirmText: 'Sì, resetta',
-          cancelText: 'Annulla',
-          danger: true,
-        });
-        if (!confirmed) return;
-
-        resetBtn.disabled = true;
-        try {
-          await resetAnnualQuotas();
-          toast('Quote annuali azzerate', 'ok');
-          close();
-        } catch (e) {
-          toast(e?.message ?? 'Errore reset quote', 'error');
-        } finally {
-          resetBtn.disabled = false;
-        }
-      });
+      location.hash = '#/settings';
     });
   }
 }
