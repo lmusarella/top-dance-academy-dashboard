@@ -4,21 +4,32 @@ import { toast } from '../ui/toast.js';
 
 export async function renderSettings() {
   return `
-    <div class="stack">
-      <section class="panel glass">
+    <div class="stack settings-page">
+      <section class="panel glass settings-hero">
         <div class="panel-head">
           <div>
             <div class="h1">Impostazioni</div>
             <div class="h2">Gestione operazioni amministrative</div>
           </div>
         </div>
-        <div class="settings-panel">
+        <div class="settings-intro muted">
+          Controlla le preferenze generali e le operazioni sensibili della piattaforma.
+        </div>
+      </section>
+
+      <section class="panel glass settings-panel">
+        <div class="settings-grid">
           <div class="settings-section">
-            <div class="settings-title">Reset annuale quote</div>
-            <div class="settings-desc muted">
-              Azzera la colonna quota per tutti gli iscritti. Operazione irreversibile.
+            <div class="settings-header">
+              <div>
+                <div class="settings-title">Reset annuale quote</div>
+                <div class="settings-desc muted">
+                  Azzera la colonna quota per tutti gli iscritti. Operazione irreversibile.
+                </div>
+              </div>
+              <span class="settings-tag danger">Operazione critica</span>
             </div>
-            <div>
+            <div class="settings-actions">
               <button class="btn danger" id="resetQuotasBtn">Reset quote</button>
             </div>
           </div>
