@@ -386,13 +386,17 @@ export async function removePersonFromCourse(courseId, personId) {
 }
 
 
-export async function searchPeople(qText, limit = 60) {
+export async function searchPeople(qText, limit = 60, { onlyWithQuota = false } = {}) {
   const s = (qText || '').trim();
   let query = supabase
     .from('people')
     .select('id, display_name, nr_quota, ruolo')
     .order('display_name', { ascending: true })
     .limit(limit);
+
+  if (onlyWithQuota) {
+    query = query.not('nr_quota', 'is', null);
+  }
 
   if (s) {
     // ricerca nome; quota la gestiamo anche come testo (client-side se serve)
