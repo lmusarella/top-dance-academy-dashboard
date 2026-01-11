@@ -66,6 +66,11 @@ export async function renderDashboard() {
           <div class="page-info" id="dashPageInfo">Pagina 1 / 1</div>
           <button class="btn ghost" id="dashNext">→</button>
         </div>
+        <div class="table-actions">
+          <button class="btn primary" id="dashToggleSort" type="button" aria-pressed="false">
+            Ordina per scadenza
+          </button>
+        </div>
         <div class="page-size">
           <span>Risultati per pagina</span>
           <select id="dashPageSize">
@@ -110,6 +115,7 @@ export async function bindDashboardEvents() {
   const pageInfo = document.querySelector('#dashPageInfo');
   const prevBtn = document.querySelector('#dashPrev');
   const nextBtn = document.querySelector('#dashNext');
+  const toggleSortBtn = document.querySelector('#dashToggleSort');
   let kpiFilter = '';
   let rows = [];
   let shown = [];
@@ -117,6 +123,7 @@ export async function bindDashboardEvents() {
   let pageSize = Number(pageSizeSelect?.value || 20);
   let currentPage = 1;
   let totalFiltered = 0;
+  let sortByExpiry = false;
   function setCounts(totalAll, totalShown) {
     if (totAllEl) totAllEl.textContent = String(totalAll ?? 0);
     if (totShownEl) totShownEl.textContent = String(totalShown ?? 0);
@@ -133,6 +140,23 @@ export async function bindDashboardEvents() {
     updatePagination();
     const start = (currentPage - 1) * pageSize;
     return list.slice(start, start + pageSize);
+  }
+  function sortByName(list) {
+    return list.sort((a, b) => {
+      const nameA = String(a?.display_name ?? '');
+      const nameB = String(b?.display_name ?? '');
+      return nameA.localeCompare(nameB, 'it', { sensitivity: 'base' });
+    });
+  }
+  function sortByExpiryDate(list) {
+    return list.sort((a, b) => {
+      const daysA = Number.isFinite(a?.giorni_rimanenti) ? a.giorni_rimanenti : Infinity;
+      const daysB = Number.isFinite(b?.giorni_rimanenti) ? b.giorni_rimanenti : Infinity;
+      if (daysA !== daysB) return daysA - daysB;
+      const nameA = String(a?.display_name ?? '');
+      const nameB = String(b?.display_name ?? '');
+      return nameA.localeCompare(nameB, 'it', { sensitivity: 'base' });
+    });
   }
   function matchKpi(r) {
     const d = r?.giorni_rimanenti;
@@ -257,26 +281,27 @@ kpis?.addEventListener('click', (e) => {
   `;
   }
   function applyFilter() {
-  const s = (q?.value || '').trim().toLowerCase();
+    const s = (q?.value || '').trim().toLowerCase();
 
-  let filtered = rows;
+    let filtered = rows;
 
-  // 1) filtro KPI (sempre, anche se input vuoto)
-  filtered = filtered.filter(matchKpi);
+    // 1) filtro KPI (sempre, anche se input vuoto)
+    filtered = filtered.filter(matchKpi);
 
-  // 2) filtro testo (solo se c'è testo)
-  if (s) {
-    filtered = filtered.filter(r => {
-      const hay = `${(r.display_name ?? '').replace(/\s+/g, ' ')}${r.nr_tessera ?? ''}${r.nr_quota ?? ''}`.toLowerCase();
-      return hay.includes(s);
-    });
+    // 2) filtro testo (solo se c'è testo)
+    if (s) {
+      filtered = filtered.filter(r => {
+        const hay = `${(r.display_name ?? '').replace(/\s+/g, ' ')}${r.nr_tessera ?? ''}${r.nr_quota ?? ''}`.toLowerCase();
+        return hay.includes(s);
+      });
+    }
+
+    const sorted = sortByExpiry ? sortByExpiryDate(filtered) : sortByName(filtered);
+    filteredRows = sorted;
+    setCounts(rows.length, filtered.length);
+    const paged = paginate(sorted);
+    renderRows(paged);
   }
-
-  filteredRows = filtered;
-  setCounts(rows.length, filtered.length);
-  const paged = paginate(filtered);
-  renderRows(paged);
-}
 
   body.addEventListener('click', async (e) => {
     const btn = e.target.closest('button');
@@ -304,7 +329,19 @@ kpis?.addEventListener('click', (e) => {
     if (q) q.value = '';
      kpiFilter = '';
   kpis?.querySelectorAll('.kpi').forEach(el => el.classList.remove('active'));
+    sortByExpiry = false;
+    if (toggleSortBtn) {
+      toggleSortBtn.setAttribute('aria-pressed', 'false');
+      toggleSortBtn.textContent = 'Ordina per scadenza';
+    }
     await load();       // load() renderizza già e quindi shown=rows
+  });
+  toggleSortBtn?.addEventListener('click', () => {
+    sortByExpiry = !sortByExpiry;
+    toggleSortBtn.setAttribute('aria-pressed', sortByExpiry ? 'true' : 'false');
+    toggleSortBtn.textContent = sortByExpiry ? 'Ordine alfabetico' : 'Ordina per scadenza';
+    currentPage = 1;
+    applyFilter();
   });
   q?.addEventListener('input', () => {
     currentPage = 1;

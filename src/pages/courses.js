@@ -388,7 +388,7 @@ export async function bindCoursesEvents() {
         updateBtn();
 
         try {
-          const rows = await searchPeople(qText, 80);
+          const rows = await searchPeople(qText, 80, { onlyWithQuota: true });
           const filtered = rows.filter(p => !existingIds.has(p.id));
           renderResults(filtered);
         } catch (err) {
