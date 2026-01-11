@@ -9,6 +9,14 @@ import { openModal, confirmDialog } from '../ui/modal.js';
 
 import { fetchAllPaged } from '../services/api.js';
 import { exportToXlsx } from '../ui/exportExcel.js';
+  // Debounce ricerca
+  let t = null;
+  function debounce(fn, ms = 250) {
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
+  }
 function escapeHtml(s) {
   return String(s)
     .replaceAll('&', '&amp;')
@@ -593,15 +601,6 @@ export async function bindPeopleEvents() {
       toast(e?.message ?? 'Errore caricamento', 'error');
       setStatus('Errore.');
     }
-  }
-
-  // Debounce ricerca
-  let t = null;
-  function debounce(fn, ms = 250) {
-    return (...args) => {
-      clearTimeout(t);
-      t = setTimeout(() => fn(...args), ms);
-    };
   }
 
   const onSearch = debounce(async () => {
