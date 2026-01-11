@@ -67,7 +67,7 @@ export async function renderDashboard() {
           <button class="btn ghost" id="dashNext">→</button>
         </div>
         <div class="table-actions">
-          <button class="btn ghost" id="dashToggleSort" type="button" aria-pressed="false">
+          <button class="btn primary" id="dashToggleSort" type="button" aria-pressed="false">
             Ordina per scadenza
           </button>
         </div>
