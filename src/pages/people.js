@@ -17,6 +17,8 @@ import { exportToXlsx } from '../ui/exportExcel.js';
       t = setTimeout(() => fn(...args), ms);
     };
   }
+  let maxQuota;
+  let nextQuota;
 function escapeHtml(s) {
   return String(s)
     .replaceAll('&', '&amp;')
@@ -897,7 +899,7 @@ export async function openPersonEditor({ personId, onSaved }) {
   if (isEdit) {
     try {
       const full = await getPersonFull(personId);
-      console.log('full', full)
+     
       fillFromPerson(full);
       // carica corsi (lista + selezionati)
       const [courses, selected] = await Promise.all([
@@ -917,8 +919,8 @@ export async function openPersonEditor({ personId, onSaved }) {
     try {
       allCourses = await listCourses({ onlyActive: true });
       renderCoursesOptions(allCourses, selectedCourseIds);
-      const maxQuota = await getMaxQuota();
-      const nextQuota = Number.isFinite(Number(maxQuota)) ? Number(maxQuota) + 1 : '';
+      maxQuota = await getMaxQuota();
+      nextQuota = Number.isFinite(Number(maxQuota)) ? Number(maxQuota) + 1 : '';
       const quotaField = form.querySelector('[name="nr_quota"]');
       if (quotaField && nextQuota !== '' && !quotaField.value) quotaField.value = String(nextQuota);
     } catch (e) {
@@ -970,6 +972,7 @@ export async function openPersonEditor({ personId, onSaved }) {
         resultsEl.innerHTML = `<div class="muted">Carico dati...</div>`;
         try {
           const full = await getPersonFull(selectedId);
+          full.person.nr_quota = nextQuota;
           fillFromPerson(full);
           const selected = await getPersonCourseIds(selectedId);
           applySelectedCourses(selected);
