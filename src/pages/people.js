@@ -1,7 +1,7 @@
 import {
   getPersonFull,
   upsertPerson, upsertContact, upsertMembership, upsertCertificate,
-  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota
+  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota, searchPeople
 } from '../services/api.js';
 
 import { toast } from '../ui/toast.js';
@@ -688,9 +688,23 @@ export async function openPersonEditor({ personId, onSaved }) {
 
   const form = document.createElement('form');
   form.className = 'form grid-rows';
+  const lookupHtml = !isEdit
+    ? `
+    <div class="section">
+      <h3>Precompila da anagrafica</h3>
+    </div>
+    <div class="form-row cols-1">
+      <label class="field">
+        <span>Cerca persona</span>
+        <input id="personLookup" placeholder="Cerca per nome o numero quota..." autocomplete="off"/>
+      </label>
+      <div class="person-lookup-results" id="personLookupResults"></div>
+    </div>
+    `
+    : '';
   form.innerHTML = `
 
-
+    ${lookupHtml}
     <div class="section">
     
     <h3>Informazioni Generali</h3>
@@ -810,6 +824,8 @@ export async function openPersonEditor({ personId, onSaved }) {
   });
 
   const coursesBox = form.querySelector('#coursesBox');
+  let allCourses = [];
+  let selectedCourseIds = [];
 
   // render lista corsi come checkbox
   function renderCoursesOptions(allCourses, selectedIds) {
@@ -853,36 +869,45 @@ export async function openPersonEditor({ personId, onSaved }) {
     syncHidden();
   }
 
+  function applySelectedCourses(ids) {
+    selectedCourseIds = (ids ?? []).map(Number);
+    if (allCourses.length) renderCoursesOptions(allCourses, selectedCourseIds);
+  }
+
+  function fillFromPerson(full) {
+    fill(form, {
+      display_name: full.person.display_name ?? '',
+      nr_quota: full.person.nr_quota ?? '',
+      ruolo: full.person.ruolo ?? 'ALLIEVO',
+      corso: full.person.corso ?? '',
+      telefono: full.contact?.telefono ?? '',
+      email: full.contact?.email ?? '',
+      codice_fiscale: full.membership?.codice_fiscale ?? '',
+      consenso_whatsapp: full.contact?.consenso_whatsapp === null || full.contact?.consenso_whatsapp === undefined
+        ? ''
+        : String(full.contact.consenso_whatsapp),
+      safeguarding: full.membership?.safeguarding === null || full.membership?.safeguarding === undefined ? '' : String(full.membership?.safeguarding),
+      nr_tessera: full.membership?.nr_tessera ?? '',
+      note: full.membership?.note ?? '',
+      scadenza: full.certificate?.scadenza ?? '',
+      fonte: full.certificate?.fonte ?? '',
+    });
+  }
+
   // preload se edit
   if (isEdit) {
     try {
       const full = await getPersonFull(personId);
       console.log('full', full)
-      fill(form, {
-        display_name: full.person.display_name ?? '',
-        nr_quota: full.person.nr_quota ?? '',
-        ruolo: full.person.ruolo ?? 'ALLIEVO',
-        corso: full.person.corso ?? '',
-        telefono: full.contact?.telefono ?? '',
-        email: full.contact?.email ?? '',
-        codice_fiscale: full.membership?.codice_fiscale ?? '',
-        consenso_whatsapp: full.contact?.consenso_whatsapp === null || full.contact?.consenso_whatsapp === undefined
-          ? ''
-          : String(full.contact.consenso_whatsapp),
-        safeguarding: full.membership?.safeguarding === null || full.membership?.safeguarding === undefined ? '' : String(full.membership?.safeguarding),
-
-        nr_tessera: full.membership?.nr_tessera ?? '',
-        note: full.membership?.note ?? '',
-
-        scadenza: full.certificate?.scadenza ?? '',
-        fonte: full.certificate?.fonte ?? '',
-      });
+      fillFromPerson(full);
       // carica corsi (lista + selezionati)
-      const [allCourses, selectedCourseIds] = await Promise.all([
+      const [courses, selected] = await Promise.all([
         listCourses({ onlyActive: true }),
         getPersonCourseIds(personId),
       ]);
 
+      allCourses = courses;
+      selectedCourseIds = selected;
       renderCoursesOptions(allCourses, selectedCourseIds);
 
     } catch (e) {
@@ -891,14 +916,70 @@ export async function openPersonEditor({ personId, onSaved }) {
   }
   if (!isEdit) {
     try {
-      const allCourses = await listCourses({ onlyActive: true });
-      renderCoursesOptions(allCourses, []);
+      allCourses = await listCourses({ onlyActive: true });
+      renderCoursesOptions(allCourses, selectedCourseIds);
       const maxQuota = await getMaxQuota();
       const nextQuota = Number.isFinite(Number(maxQuota)) ? Number(maxQuota) + 1 : '';
       const quotaField = form.querySelector('[name="nr_quota"]');
-      if (quotaField && nextQuota !== '') quotaField.value = String(nextQuota);
+      if (quotaField && nextQuota !== '' && !quotaField.value) quotaField.value = String(nextQuota);
     } catch (e) {
       coursesBox.innerHTML = `<span class="muted">Errore caricamento corsi</span>`;
+    }
+
+    const lookupInput = form.querySelector('#personLookup');
+    const resultsEl = form.querySelector('#personLookupResults');
+    if (lookupInput && resultsEl) {
+      const renderResults = (rows) => {
+        if (!rows?.length) {
+          resultsEl.innerHTML = `<div class="muted">Nessun risultato</div>`;
+          return;
+        }
+        resultsEl.innerHTML = rows.map(row => `
+          <button type="button" class="person-lookup-item" data-person-id="${row.id}">
+            <div class="person-lookup-name">${esc(row.display_name || 'Senza nome')}</div>
+            <div class="person-lookup-meta muted">
+              ${row.nr_quota ? `Quota #${esc(row.nr_quota)}` : 'Quota —'}
+              ${row.ruolo ? `• ${esc(row.ruolo)}` : ''}
+            </div>
+          </button>
+        `).join('');
+      };
+
+      const doSearch = debounce(async () => {
+        const term = (lookupInput.value || '').trim();
+        if (!term) {
+          resultsEl.innerHTML = `<div class="muted">Inizia a digitare per cercare.</div>`;
+          return;
+        }
+        resultsEl.innerHTML = `<div class="muted">Cerco...</div>`;
+        try {
+          const rows = await searchPeople(term, 8);
+          renderResults(rows);
+        } catch (e) {
+          resultsEl.innerHTML = `<div class="muted">Errore ricerca</div>`;
+        }
+      }, 250);
+
+      resultsEl.innerHTML = `<div class="muted">Inizia a digitare per cercare.</div>`;
+      lookupInput.addEventListener('input', doSearch);
+
+      resultsEl.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-person-id]');
+        if (!btn) return;
+        const selectedId = btn.getAttribute('data-person-id');
+        if (!selectedId) return;
+        resultsEl.innerHTML = `<div class="muted">Carico dati...</div>`;
+        try {
+          const full = await getPersonFull(selectedId);
+          fillFromPerson(full);
+          const selected = await getPersonCourseIds(selectedId);
+          applySelectedCourses(selected);
+          lookupInput.value = full.person.display_name ?? '';
+          resultsEl.innerHTML = `<div class="muted">Dati caricati dalla persona selezionata.</div>`;
+        } catch (e) {
+          resultsEl.innerHTML = `<div class="muted">Errore caricamento dati</div>`;
+        }
+      });
     }
   }
 
