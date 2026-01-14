@@ -350,7 +350,6 @@ export async function bindCoursesEvents() {
     function close() { modal.remove(); }
 
     btnClose.addEventListener('click', close);
-    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 
     function renderResults(rows) {
       if (!rows.length) {

@@ -22,9 +22,6 @@ export function openModal({ title, content, onClose }) {
   };
 
   root.querySelector('[data-x]').addEventListener('click', close);
-  root.querySelector('.modal-backdrop').addEventListener('click', (e) => {
-    if (e.target.classList.contains('modal-backdrop')) close();
-  });
 
   return { close, body };
 }
