@@ -176,6 +176,8 @@ export async function bindPeopleEvents() {
   let totalFiltered = 0;
   let certStatuses = ['ALL'];
   let pendingCertStatuses = ['ALL'];
+  let certTypes = [];
+  let pendingCertTypes = [];
   let role = 'ALL';
   let selectedCourseIds = [];      // filtri attivi
   let pendingCourseIds = [];       // selezione “nel box” prima di Applica
@@ -211,10 +213,12 @@ export async function bindPeopleEvents() {
     }
   }
   function setBtnCertsLabel() {
-    if (!certStatuses.length || certStatuses.includes('ALL')) {
+    const activeStatuses = certStatuses.filter(status => status !== 'ALL');
+    const totalSelected = activeStatuses.length + certTypes.length;
+    if (!totalSelected) {
       btnCerts.textContent = 'Filtra per certificati';
     } else {
-      btnCerts.textContent = `Certificati selezionati: ${certStatuses.length}`;
+      btnCerts.textContent = `Certificati selezionati: ${totalSelected}`;
     }
   }
   function mapCourseIdToName() {
@@ -247,24 +251,36 @@ export async function bindPeopleEvents() {
   }
   function renderSelectedCertChips() {
     if (!certsChips) return;
-    if (!certStatuses.length || certStatuses.includes('ALL')) {
+    const selectedStatuses = certStatuses.filter(status => status !== 'ALL');
+    if (!selectedStatuses.length && !certTypes.length) {
       certsChips.innerHTML = '';
       return;
     }
 
-    const labelByValue = new Map(CERT_STATUS_OPTIONS.map((option) => [option.value, option.label]));
+    const statusLabelByValue = new Map(CERT_STATUS_OPTIONS.map((option) => [option.value, option.label]));
+    const typeLabelByValue = new Map(CERT_TYPE_OPTIONS.map((option) => [option.value, option.label]));
 
-    certsChips.innerHTML = certStatuses
+    const statusChips = selectedStatuses
       .map(value => {
-        const label = labelByValue.get(value) ?? value;
+        const label = statusLabelByValue.get(value) ?? value;
         return `
         <span class="chip" data-cert-status="${value}">
           <span>${esc(label)}</span>
           <span class="x" title="Rimuovi" data-remove-cert="${value}">×</span>
         </span>
       `;
-      })
-      .join('');
+      });
+    const typeChips = certTypes.map(value => {
+      const label = typeLabelByValue.get(value) ?? value;
+      return `
+        <span class="chip" data-cert-type="${value}">
+          <span>${esc(label)}</span>
+          <span class="x" title="Rimuovi" data-remove-cert-type="${value}">×</span>
+        </span>
+      `;
+    });
+
+    certsChips.innerHTML = [...statusChips, ...typeChips].join('');
   }
   coursesChips?.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-remove]');
@@ -280,11 +296,19 @@ export async function bindPeopleEvents() {
   });
   certsChips?.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-remove-cert]');
-    if (!btn) return;
+    const typeBtn = e.target.closest('[data-remove-cert-type]');
+    if (!btn && !typeBtn) return;
 
-    const value = btn.getAttribute('data-remove-cert');
-    certStatuses = certStatuses.filter(status => status !== value);
-    if (!certStatuses.length) certStatuses = ['ALL'];
+    if (btn) {
+      const value = btn.getAttribute('data-remove-cert');
+      certStatuses = certStatuses.filter(status => status !== value);
+      if (!certStatuses.length) certStatuses = ['ALL'];
+    }
+
+    if (typeBtn) {
+      const value = typeBtn.getAttribute('data-remove-cert-type');
+      certTypes = certTypes.filter(type => type !== value);
+    }
 
     setBtnCertsLabel();
     renderSelectedCertChips();
@@ -298,9 +322,14 @@ export async function bindPeopleEvents() {
     { value: 'MISSING', label: '❌ Assenti' },
     { value: 'NON_RICHIESTO', label: '🟡 Esenti' },
   ];
+  const CERT_TYPE_OPTIONS = [
+    { value: 'Agonistico', label: 'Agonistico' },
+    { value: 'Non agonistico', label: 'Non agonistico' },
+  ];
 
-  function renderCertsFilterList(selectedStatuses) {
+  function renderCertsFilterList(selectedStatuses, selectedTypes) {
     const selected = new Set((selectedStatuses ?? []).map(String));
+    const selectedTypeSet = new Set((selectedTypes ?? []).map(String));
     certsFilterStatus.textContent = '';
     certsFilterList.innerHTML = `
       <div class="course-group">
@@ -310,6 +339,17 @@ export async function bindPeopleEvents() {
             <label class="course-item">
               <input type="checkbox" value="${status.value}" ${selected.has(status.value) ? 'checked' : ''}/>
               <span>${esc(status.label)}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="course-group" style="margin-top:8px">
+        <div class="meta"><b>Tipo certificato</b></div>
+        <div class="course-grid">
+          ${CERT_TYPE_OPTIONS.map((type) => `
+            <label class="course-item">
+              <input type="checkbox" value="${type.value}" data-cert-type="true" ${selectedTypeSet.has(type.value) ? 'checked' : ''}/>
+              <span>${esc(type.label)}</span>
             </label>
           `).join('')}
         </div>
@@ -325,9 +365,16 @@ export async function bindPeopleEvents() {
 
   function readPendingCertStatusesFromUI() {
     const selected = Array.from(certsFilterList.querySelectorAll('input[type="checkbox"]:checked'))
+      .filter(input => !input.hasAttribute('data-cert-type'))
       .map(input => input.value)
       .filter(Boolean);
     return normalizePendingCertStatuses(selected);
+  }
+  function readPendingCertTypesFromUI() {
+    const selected = Array.from(certsFilterList.querySelectorAll('input[type="checkbox"][data-cert-type="true"]:checked'))
+      .map(input => input.value)
+      .filter(Boolean);
+    return Array.from(new Set(selected));
   }
   function renderCoursesFilterList(allCourses, checkedIds) {
     const checked = new Set((checkedIds ?? []).map(Number));
@@ -370,9 +417,10 @@ export async function bindPeopleEvents() {
   function syncCertsAllBehavior(event) {
     const input = event.target.closest('input[type="checkbox"]');
     if (!input) return;
+    if (input.hasAttribute('data-cert-type')) return;
     if (input.value === 'ALL' && input.checked) {
       certsFilterList.querySelectorAll('input[type="checkbox"]').forEach((item) => {
-        if (item.value !== 'ALL') item.checked = false;
+        if (item.value !== 'ALL' && !item.hasAttribute('data-cert-type')) item.checked = false;
       });
       return;
     }
@@ -395,7 +443,7 @@ export async function bindPeopleEvents() {
 
     const all = await fetchAllPaged(({ limit, offset }) =>
       listPeoplePaged({
-        q: q, limit, offset, certStatus: certStatuses, ruolo: role,
+        q: q, limit, offset, certStatus: certStatuses, certType: certTypes, ruolo: role,
         courseIds: selectedCourseIds
       })
     );
@@ -460,7 +508,8 @@ export async function bindPeopleEvents() {
     certsFilterBox.style.display = 'block';
     certsFilterStatus.textContent = 'Seleziona certificati…';
     pendingCertStatuses = [...certStatuses];
-    renderCertsFilterList(pendingCertStatuses);
+    pendingCertTypes = [...certTypes];
+    renderCertsFilterList(pendingCertStatuses, pendingCertTypes);
   });
 
   certsFilterList.addEventListener('change', (event) => {
@@ -469,17 +518,21 @@ export async function bindPeopleEvents() {
 
   btnCertsAll.addEventListener('click', () => {
     pendingCertStatuses = ['ALL'];
-    renderCertsFilterList(pendingCertStatuses);
+    pendingCertTypes = [];
+    renderCertsFilterList(pendingCertStatuses, pendingCertTypes);
   });
 
   btnCertsNone.addEventListener('click', () => {
     pendingCertStatuses = [];
-    renderCertsFilterList(pendingCertStatuses);
+    pendingCertTypes = [];
+    renderCertsFilterList(pendingCertStatuses, pendingCertTypes);
   });
 
   btnCertsApply.addEventListener('click', async () => {
     pendingCertStatuses = readPendingCertStatusesFromUI();
+    pendingCertTypes = readPendingCertTypesFromUI();
     certStatuses = [...pendingCertStatuses];
+    certTypes = [...pendingCertTypes];
     setBtnCertsLabel();
     renderSelectedCertChips();
     certsFilterBox.style.display = 'none';
@@ -517,6 +570,9 @@ export async function bindPeopleEvents() {
   renderSelectedCertChips();
 
   function rowHtml(r) {
+    const isExempt = r.cert_status == 'NON_RICHIESTO';
+    const rawCertType = r.type ?? r.cert_type;
+    const certTypeLabel = rawCertType ? esc(rawCertType) : '—';
 
     return `
       <tr>
@@ -528,9 +584,14 @@ export async function bindPeopleEvents() {
           <div class="meta">
             <span>${r.cert_status == 'MISSING' ? '❌ Assente' : r.cert_status == 'EXPIRED' ? '🔴 Scaduto' : r.cert_status == 'IN_SCADENZA' ? '🔵 In Scadenza':r.cert_status == 'NON_RICHIESTO' ? '🟡 Esente' : '🟢 Ok'}</span>
           </div>
-          <div class="meta">
-             <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
-          </div>
+          ${isExempt ? '' : `
+            <div class="meta">
+               <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
+            </div>
+            <div class="meta">
+              <span>Tipo: ${certTypeLabel}</span>
+            </div>
+          `}
         </td>
         <td><div class="meta">
             ${r.telefono ? `<span>📞 ${escapeHtml(r.telefono)}</span>` : `<span class="muted">📞 —</span>`}
@@ -567,7 +628,7 @@ export async function bindPeopleEvents() {
     try {
       const offset = (currentPage - 1) * pageSize;
       const rows = await listPeoplePaged({
-        q, limit: pageSize, offset, certStatus: certStatuses, ruolo: role,
+        q, limit: pageSize, offset, certStatus: certStatuses, certType: certTypes, ruolo: role,
         courseIds: selectedCourseIds
       });
       if (rows.length === 0) {
@@ -591,10 +652,11 @@ export async function bindPeopleEvents() {
       const totalAll = await countPeople({ q: '' });  // totale soci
       const hasFilters = q
         || (certStatuses?.length && !certStatuses.includes('ALL'))
+        || certTypes.length > 0
         || selectedCourseIds.length > 0
         || role !== 'ALL';
       totalFiltered = hasFilters
-        ? await countPeople({ q, certStatus: certStatuses, courseIds: selectedCourseIds, ruolo: role })
+        ? await countPeople({ q, certStatus: certStatuses, certType: certTypes, courseIds: selectedCourseIds, ruolo: role })
         : totalAll;
       setCounts({ totalAll, totalShown: totalFiltered });
       updatePagination();

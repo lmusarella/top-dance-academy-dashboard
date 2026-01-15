@@ -108,6 +108,7 @@ export async function listPeoplePaged({
   limit = 50,
   offset = 0,
   certStatus = 'ALL',
+  certType = [],
   ruolo = 'ALL',   // ALL | OK | EXPIRED | MISSING | EXPIRED_OR_MISSING | array
   courseIds = []          // array di int
 } = {}) {
@@ -121,6 +122,11 @@ export async function listPeoplePaged({
   const certStatuses = normalizeCertStatuses(certStatus);
   if (certStatuses.length) {
     query = query.in('cert_status', certStatuses);
+  }
+
+  const certTypes = normalizeCertTypes(certType);
+  if (certTypes.length) {
+    query = query.in('type', certTypes);
   }
 
     // --- filtri ruolo ---
@@ -216,6 +222,7 @@ export async function listPeopleByQuotaPaged({
 export async function countPeople({
   q = '',
   certStatus = 'ALL',
+  certType = [],
   courseIds = [],
   ruolo = 'ALL',
   safeguarding = 'ALL'
@@ -227,6 +234,11 @@ export async function countPeople({
   const certStatuses = normalizeCertStatuses(certStatus);
   if (certStatuses.length) {
     query = query.in('cert_status', certStatuses);
+  }
+
+  const certTypes = normalizeCertTypes(certType);
+  if (certTypes.length) {
+    query = query.in('type', certTypes);
   }
 
   const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
@@ -283,6 +295,11 @@ function normalizeCertStatuses(certStatus) {
   }
 
   return Array.from(normalized);
+}
+
+function normalizeCertTypes(certType) {
+  const rawTypes = Array.isArray(certType) ? certType : [certType];
+  return rawTypes.map(type => String(type).trim()).filter(Boolean);
 }
 
 export async function fetchAllPaged(fetchPageFn, { pageSize = 500 } = {}) {
