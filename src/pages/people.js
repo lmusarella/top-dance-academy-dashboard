@@ -779,10 +779,19 @@ export async function openPersonEditor({ personId, onSaved }) {
     
     <div class="section"><h3>Certificato</h3></div>
 
-    <div class="form-row cols-2">
+    <div class="form-row cols-3">
       <label class="field size-md">
         <span>Scadenza (YYYY-MM-DD)</span>
         <input name="scadenza" type="date"/>
+      </label>
+
+      <label class="field size-md">
+        <span>Tipo certificato</span>
+        <select name="type">
+          <option value="">—</option>
+          <option value="Agonistico">Agonistico</option>
+          <option value="Non agonistico">Non agonistico</option>
+        </select>
       </label>
 
       <label class="field">
@@ -891,6 +900,7 @@ export async function openPersonEditor({ personId, onSaved }) {
       nr_tessera: full.membership?.nr_tessera ?? '',
       note: full.membership?.note ?? '',
       scadenza: full.certificate?.scadenza ?? '',
+      type: full.certificate?.type ?? '',
       fonte: full.certificate?.fonte ?? '',
     });
   }
@@ -1050,6 +1060,7 @@ export async function openPersonEditor({ personId, onSaved }) {
         }),
         upsertCertificate(id, {
           scadenza: strOrNull(fd.get('scadenza')),
+          type: strOrNull(fd.get('type')),
           fonte: strOrNull(fd.get('fonte')),
         }),
       ]);
