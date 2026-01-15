@@ -588,15 +588,13 @@ export async function bindPeopleEvents() {
           <div class="meta">
             <span>${r.cert_status == 'MISSING' ? '❌ Assente' : r.cert_status == 'EXPIRED' ? '🔴 Scaduto' : r.cert_status == 'IN_SCADENZA' ? '🔵 In Scadenza':r.cert_status == 'NON_RICHIESTO' ? '🟡 Esente' : '🟢 Ok'}</span>
           </div>
-          ${isExempt ? '' : `
+          ${isExempt || isMissing ? '' : `
             <div class="meta">
                <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
             </div>
-            ${isMissing ? '' : `
-              <div class="meta">
-                <span>Tipo: ${certTypeLabel}</span>
-              </div>
-            `}
+            <div class="meta">
+              <span>Tipo: ${certTypeLabel}</span>
+            </div>
           `}
         </td>
         <td><div class="meta">

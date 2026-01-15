@@ -246,10 +246,10 @@ kpis?.addEventListener('click', (e) => {
         <div class="meta">
             ${chip(r.giorni_rimanenti)}
           </div>
-          <div class="meta">
-            <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
-          </div>
           ${r.giorni_rimanenti == null ? '' : `
+            <div class="meta">
+              <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
+            </div>
             <div class="meta">
               <span>Tipo: ${escapeHtml(r.type ?? r.cert_type ?? '—')}</span>
             </div>
