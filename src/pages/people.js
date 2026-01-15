@@ -457,6 +457,7 @@ export async function bindPeopleEvents() {
       'ruolo',
       'giorni_rimanenti',
       'scadenza',
+      'tipo_certificato',
       'telefono',
       'email',
       'consenso_whatsapp',
@@ -465,10 +466,12 @@ export async function bindPeopleEvents() {
     ];
 
     const toExport = (all ?? []).map(r => {
+      const certTypeValue = r.type ?? r.cert_type ?? null;
       const flat = {
         ...r,
         corsi: corsiToString(r.corsi), // <-- QUI il fix
         scadenza: r.scadenza_fmt ?? null,
+        tipo_certificato: certTypeValue,
       };
       return pick(flat, EXPORT_COLS);
     });
@@ -571,6 +574,7 @@ export async function bindPeopleEvents() {
 
   function rowHtml(r) {
     const isExempt = r.cert_status == 'NON_RICHIESTO';
+    const isMissing = r.cert_status == 'MISSING';
     const rawCertType = r.type ?? r.cert_type;
     const certTypeLabel = rawCertType ? esc(rawCertType) : '—';
 
@@ -588,9 +592,11 @@ export async function bindPeopleEvents() {
             <div class="meta">
                <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
             </div>
-            <div class="meta">
-              <span>Tipo: ${certTypeLabel}</span>
-            </div>
+            ${isMissing ? '' : `
+              <div class="meta">
+                <span>Tipo: ${certTypeLabel}</span>
+              </div>
+            `}
           `}
         </td>
         <td><div class="meta">

@@ -190,6 +190,7 @@ export async function bindDashboardEvents() {
       nome: r.display_name ?? null,
       tessera: r.nr_tessera ?? null,
       scadenza: r.scadenza_fmt ?? null,
+      tipo_certificato: r.type ?? r.cert_type ?? null,
       giorni: r.giorni_rimanenti ?? null,
       corsi: corsiToString(r.corsi),
     }));
@@ -248,7 +249,11 @@ kpis?.addEventListener('click', (e) => {
           <div class="meta">
             <span>⏳ ${r.scadenza_fmt ?? '—'}</span>
           </div>
-          
+          ${r.giorni_rimanenti == null ? '' : `
+            <div class="meta">
+              <span>Tipo: ${escapeHtml(r.type ?? r.cert_type ?? '—')}</span>
+            </div>
+          `}
         </td>
  
         
