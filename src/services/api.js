@@ -175,7 +175,8 @@ export async function listPeopleByQuotaPaged({
   offset = 0,
   ruolo = '',
   safeguarding = 'ALL',
-  withoutCard = false
+  withoutCard = false,
+  courseIds = []
 } = {}) {
   let query = supabase
     .from('v_people_search')
@@ -195,6 +196,11 @@ export async function listPeopleByQuotaPaged({
   }
   if (withoutCard) {
     query = query.or('nr_tessera.is.null,nr_tessera.eq.""');
+  }
+
+  const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
+  if (ids.length) {
+    query = query.overlaps('course_ids', ids);
   }
 
   const s = String(q ?? '').trim();
