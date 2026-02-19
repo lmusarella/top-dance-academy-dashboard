@@ -50,6 +50,9 @@ export async function renderTessere() {
           <button class="chip-btn" id="tessereMissingToggle" type="button" aria-pressed="false">
             Solo record senza tessera
           </button>
+          <button class="chip-btn" id="tessereExcludeCantinmusicaToggle" type="button" aria-pressed="false">
+            Escludi cantinmusica
+          </button>
         </div>
         <div class="meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
       </div>
@@ -105,6 +108,7 @@ export async function bindTessereEvents() {
   const shownEl = document.querySelector('#tessereShown');
   const totalEl = document.querySelector('#tessereTotal');
   const missingToggle = document.querySelector('#tessereMissingToggle');
+  const excludeCantinmusicaToggle = document.querySelector('#tessereExcludeCantinmusicaToggle');
   const btnExport = document.querySelector('#btnExportTessere');
   const pageSizeSelect = document.querySelector('#tesserePageSize');
   const pageInfo = document.querySelector('#tesserePageInfo');
@@ -120,6 +124,7 @@ export async function bindTessereEvents() {
   let role = 'ALL';
   let safeguarding = 'ALL';
   let withoutCard = false;
+  let excludeCantinmusicaOnly = false;
   let loading = false;
   let cacheRows = [];
   let shown = 0;
@@ -254,7 +259,8 @@ export async function bindTessereEvents() {
         offset,
         ruolo: role,
         safeguarding,
-        withoutCard
+        withoutCard,
+        excludeCantinmusicaOnly
       });
       if (rows.length === 0) {
         body.innerHTML = '';
@@ -280,7 +286,7 @@ export async function bindTessereEvents() {
     body.innerHTML = '';
     try {
       totalAll = await countPeople({ q: '', ruolo: 'ALL', safeguarding: 'ALL' });
-      totalFiltered = await countPeople({ q, ruolo: role, safeguarding, withoutCard });
+      totalFiltered = await countPeople({ q, ruolo: role, safeguarding, withoutCard, excludeCantinmusicaOnly });
       shown = totalFiltered;
       updateCount(totalAll);
       updatePagination();
@@ -323,6 +329,13 @@ export async function bindTessereEvents() {
     currentPage = 1;
     await resetAndLoad();
   });
+  excludeCantinmusicaToggle?.addEventListener('click', async () => {
+    excludeCantinmusicaOnly = !excludeCantinmusicaOnly;
+    excludeCantinmusicaToggle.classList.toggle('active', excludeCantinmusicaOnly);
+    excludeCantinmusicaToggle.setAttribute('aria-pressed', excludeCantinmusicaOnly ? 'true' : 'false');
+    currentPage = 1;
+    await resetAndLoad();
+  });
   pageSizeSelect?.addEventListener('change', async () => {
     pageSize = Number(pageSizeSelect.value) || PAGE_DEFAULT;
     currentPage = 1;
@@ -359,7 +372,7 @@ export async function bindTessereEvents() {
   btnExport?.addEventListener('click', async () => {
     try {
       const all = await fetchAllPaged(({ limit, offset }) =>
-        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding, withoutCard })
+        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding, withoutCard, excludeCantinmusicaOnly })
       );
 
       const EXPORT_COLS = [
