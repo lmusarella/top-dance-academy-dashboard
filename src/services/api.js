@@ -175,7 +175,8 @@ export async function listPeopleByQuotaPaged({
   offset = 0,
   ruolo = '',
   safeguarding = 'ALL',
-  withoutCard = false
+  withoutCard = false,
+  excludeCantinmusicaOnly = false
 } = {}) {
   let query = supabase
     .from('v_people_search')
@@ -195,6 +196,9 @@ export async function listPeopleByQuotaPaged({
   }
   if (withoutCard) {
     query = query.or('nr_tessera.is.null,nr_tessera.eq.""');
+  }
+  if (excludeCantinmusicaOnly) {
+    query = query.not('course_ids', 'eq', '{39}');
   }
 
   const s = String(q ?? '').trim();
@@ -230,7 +234,8 @@ export async function countPeople({
   courseIds = [],
   ruolo = 'ALL',
   safeguarding = 'ALL',
-  withoutCard = false
+  withoutCard = false,
+  excludeCantinmusicaOnly = false
 } = {}) {
   let query = supabase
     .from('v_people_search')
@@ -261,6 +266,9 @@ export async function countPeople({
   }
   if (withoutCard) {
     query = query.or('nr_tessera.is.null,nr_tessera.eq.""');
+  }
+  if (excludeCantinmusicaOnly) {
+    query = query.not('course_ids', 'eq', '{39}');
   }
 
   const s = String(q ?? '').trim();
