@@ -1,4 +1,4 @@
-import { listPeopleByQuotaPaged, countPeople, fetchAllPaged, upsertContact, upsertMembership } from '../services/api.js';
+import { listPeopleByQuotaPaged, countPeople, fetchAllPaged, upsertMembership, listCourses } from '../services/api.js';
 import { toast } from '../ui/toast.js';
 import { exportToXlsx } from '../ui/exportExcel.js';
 import { openModal } from '../ui/modal.js';
@@ -45,11 +45,23 @@ export async function renderTessere() {
               <option value="ASSENTE">Modulo Safeguarding: ❌ Assente</option>
             </select>
           </div>
+          <button class="btn primary" type="button" id="btnTessereCourses">Filtra per corsi</button>
         </div>
         <div class="tessere-toggle-row">
           <button class="chip-btn" id="tessereMissingToggle" type="button" aria-pressed="false">
             Solo record senza tessera
           </button>
+        </div>
+        <div id="tessereCoursesChips" class="chips"></div>
+        <div id="tessereCoursesFilterBox" class="panel glass" style="display:none; padding:10px; margin-top:8px">
+          <div class="muted" id="tessereCoursesFilterStatus">Carico corsi…</div>
+          <div id="tessereCoursesFilterList" class="stack" style="gap:6px; margin-top:8px"></div>
+
+          <div class="row" style="justify-content:space-between; margin-top:10px">
+            <button class="btn ghost" type="button" id="btnTessereCoursesAll">Tutti</button>
+            <button class="btn ghost" type="button" id="btnTessereCoursesNone">Nessuno</button>
+            <button class="btn primary" type="button" id="btnTessereCoursesApply">Applica</button>
+          </div>
         </div>
         <div class="meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
       </div>
@@ -105,6 +117,14 @@ export async function bindTessereEvents() {
   const shownEl = document.querySelector('#tessereShown');
   const totalEl = document.querySelector('#tessereTotal');
   const missingToggle = document.querySelector('#tessereMissingToggle');
+  const btnCourses = document.querySelector('#btnTessereCourses');
+  const coursesChips = document.querySelector('#tessereCoursesChips');
+  const coursesFilterBox = document.querySelector('#tessereCoursesFilterBox');
+  const coursesFilterStatus = document.querySelector('#tessereCoursesFilterStatus');
+  const coursesFilterList = document.querySelector('#tessereCoursesFilterList');
+  const btnCoursesAll = document.querySelector('#btnTessereCoursesAll');
+  const btnCoursesNone = document.querySelector('#btnTessereCoursesNone');
+  const btnCoursesApply = document.querySelector('#btnTessereCoursesApply');
   const btnExport = document.querySelector('#btnExportTessere');
   const pageSizeSelect = document.querySelector('#tesserePageSize');
   const pageInfo = document.querySelector('#tesserePageInfo');
@@ -120,6 +140,9 @@ export async function bindTessereEvents() {
   let role = 'ALL';
   let safeguarding = 'ALL';
   let withoutCard = false;
+  let selectedCourseIds = [];
+  let pendingCourseIds = [];
+  let allCoursesCache = null;
   let loading = false;
   let cacheRows = [];
   let shown = 0;
@@ -138,6 +161,87 @@ export async function bindTessereEvents() {
     if (pageInfo) pageInfo.textContent = `Pagina ${currentPage} / ${totalPages}`;
     if (prevBtn) prevBtn.disabled = currentPage <= 1;
     if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+  }
+
+
+  function escHtml(s) {
+    return esc(s);
+  }
+
+  function setBtnCoursesLabel() {
+    if (!btnCourses) return;
+    if (!selectedCourseIds.length) {
+      btnCourses.textContent = 'Filtra per corsi';
+    } else {
+      btnCourses.textContent = `Corsi selezionati: ${selectedCourseIds.length}`;
+    }
+  }
+
+  function mapCourseIdToName() {
+    const m = new Map();
+    for (const c of (allCoursesCache ?? [])) m.set(Number(c.id), c.nome_corso);
+    return m;
+  }
+
+  function renderSelectedCourseChips() {
+    if (!coursesChips) return;
+
+    if (!selectedCourseIds.length) {
+      coursesChips.innerHTML = '';
+      return;
+    }
+
+    const nameById = mapCourseIdToName();
+
+    coursesChips.innerHTML = selectedCourseIds
+      .map(id => {
+        const label = nameById.get(Number(id)) ?? `Corso #${id}`;
+        return `
+        <span class="chip" data-course-id="${id}">
+          <span>${escHtml(label)}</span>
+          <span class="x" title="Rimuovi" data-remove="${id}">×</span>
+        </span>
+      `;
+      })
+      .join('');
+  }
+
+  function renderCoursesFilterList(allCourses, checkedIds) {
+    const checked = new Set((checkedIds ?? []).map(Number));
+    const groups = new Map();
+
+    for (const c of (allCourses ?? [])) {
+      const key = c.tipo_corso || 'ALTRO';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({ id: Number(c.id), nome_corso: c.nome_corso });
+    }
+
+    coursesFilterStatus.textContent = '';
+    coursesFilterList.innerHTML = Array.from(groups.entries()).map(([tipo, items]) => `
+    <div class="course-group">
+      <div class="meta"><b>${escHtml(tipo)}</b></div>
+      <div class="course-grid">
+        ${items.map(c => `
+          <label class="course-item">
+            <input type="checkbox" value="${c.id}" ${checked.has(c.id) ? 'checked' : ''}/>
+            <span>${escHtml(c.nome_corso)}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+  `).join('') || `<span class="muted">Nessun corso.</span>`;
+  }
+
+  async function ensureCoursesLoaded() {
+    if (allCoursesCache) return allCoursesCache;
+    allCoursesCache = await listCourses({ onlyActive: true });
+    return allCoursesCache;
+  }
+
+  function readPendingSelectedFromUI() {
+    return Array.from(coursesFilterList.querySelectorAll('input[type="checkbox"]:checked'))
+      .map(x => Number(x.value))
+      .filter(Number.isFinite);
   }
 
   function rowHtml(r) {
@@ -254,7 +358,8 @@ export async function bindTessereEvents() {
         offset,
         ruolo: role,
         safeguarding,
-        withoutCard
+        withoutCard,
+        courseIds: selectedCourseIds
       });
       if (rows.length === 0) {
         body.innerHTML = '';
@@ -280,7 +385,7 @@ export async function bindTessereEvents() {
     body.innerHTML = '';
     try {
       totalAll = await countPeople({ q: '', ruolo: 'ALL', safeguarding: 'ALL' });
-      totalFiltered = await countPeople({ q, ruolo: role, safeguarding, withoutCard });
+      totalFiltered = await countPeople({ q, ruolo: role, safeguarding, withoutCard, courseIds: selectedCourseIds });
       shown = totalFiltered;
       updateCount(totalAll);
       updatePagination();
@@ -323,6 +428,64 @@ export async function bindTessereEvents() {
     currentPage = 1;
     await resetAndLoad();
   });
+  coursesChips?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+
+    const id = Number(btn.getAttribute('data-remove'));
+    if (!Number.isFinite(id)) return;
+
+    selectedCourseIds = selectedCourseIds.filter(x => Number(x) !== id);
+    setBtnCoursesLabel();
+    renderSelectedCourseChips();
+    currentPage = 1;
+    await resetAndLoad();
+  });
+
+  btnCourses?.addEventListener('click', async () => {
+    const isOpen = coursesFilterBox.style.display !== 'none';
+    if (isOpen) {
+      coursesFilterBox.style.display = 'none';
+      return;
+    }
+
+    coursesFilterBox.style.display = 'block';
+    coursesFilterStatus.textContent = 'Carico corsi…';
+
+    try {
+      const all = await ensureCoursesLoaded();
+      pendingCourseIds = [...selectedCourseIds];
+      renderCoursesFilterList(all, pendingCourseIds);
+      renderSelectedCourseChips();
+    } catch (e) {
+      coursesFilterStatus.textContent = 'Errore caricamento corsi';
+    }
+  });
+
+  btnCoursesAll?.addEventListener('click', async () => {
+    const all = await ensureCoursesLoaded();
+    pendingCourseIds = all.map(c => c.id);
+    renderCoursesFilterList(all, pendingCourseIds);
+    renderSelectedCourseChips();
+  });
+
+  btnCoursesNone?.addEventListener('click', async () => {
+    const all = await ensureCoursesLoaded();
+    pendingCourseIds = [];
+    renderCoursesFilterList(all, pendingCourseIds);
+    renderSelectedCourseChips();
+  });
+
+  btnCoursesApply?.addEventListener('click', async () => {
+    pendingCourseIds = readPendingSelectedFromUI();
+    selectedCourseIds = [...pendingCourseIds];
+    setBtnCoursesLabel();
+    coursesFilterBox.style.display = 'none';
+    currentPage = 1;
+    await resetAndLoad();
+    renderSelectedCourseChips();
+  });
+
   pageSizeSelect?.addEventListener('change', async () => {
     pageSize = Number(pageSizeSelect.value) || PAGE_DEFAULT;
     currentPage = 1;
@@ -359,7 +522,7 @@ export async function bindTessereEvents() {
   btnExport?.addEventListener('click', async () => {
     try {
       const all = await fetchAllPaged(({ limit, offset }) =>
-        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding, withoutCard })
+        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding, withoutCard, courseIds: selectedCourseIds })
       );
 
       const EXPORT_COLS = [
@@ -392,5 +555,7 @@ export async function bindTessereEvents() {
     }
   });
 
+  setBtnCoursesLabel();
+  renderSelectedCourseChips();
   await resetAndLoad();
 }
