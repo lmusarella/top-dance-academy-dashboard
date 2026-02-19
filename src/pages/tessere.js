@@ -46,6 +46,11 @@ export async function renderTessere() {
             </select>
           </div>
         </div>
+        <div class="tessere-toggle-row">
+          <button class="chip-btn" id="tessereMissingToggle" type="button" aria-pressed="false">
+            Solo record senza tessera
+          </button>
+        </div>
         <div class="meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
       </div>
 
@@ -99,6 +104,7 @@ export async function bindTessereEvents() {
   const safeguardingFilter = document.querySelector('#tessereSafeguardingFilter');
   const shownEl = document.querySelector('#tessereShown');
   const totalEl = document.querySelector('#tessereTotal');
+  const missingToggle = document.querySelector('#tessereMissingToggle');
   const btnExport = document.querySelector('#btnExportTessere');
   const pageSizeSelect = document.querySelector('#tesserePageSize');
   const pageInfo = document.querySelector('#tesserePageInfo');
@@ -113,6 +119,7 @@ export async function bindTessereEvents() {
   let q = '';
   let role = 'ALL';
   let safeguarding = 'ALL';
+  let withoutCard = false;
   let loading = false;
   let cacheRows = [];
   let shown = 0;
@@ -246,7 +253,8 @@ export async function bindTessereEvents() {
         limit: pageSize,
         offset,
         ruolo: role,
-        safeguarding
+        safeguarding,
+        withoutCard
       });
       if (rows.length === 0) {
         body.innerHTML = '';
@@ -272,7 +280,7 @@ export async function bindTessereEvents() {
     body.innerHTML = '';
     try {
       totalAll = await countPeople({ q: '', ruolo: 'ALL', safeguarding: 'ALL' });
-      totalFiltered = await countPeople({ q, ruolo: role, safeguarding });
+      totalFiltered = await countPeople({ q, ruolo: role, safeguarding, withoutCard });
       shown = totalFiltered;
       updateCount(totalAll);
       updatePagination();
@@ -305,6 +313,13 @@ export async function bindTessereEvents() {
   });
   safeguardingFilter?.addEventListener('change', async () => {
     safeguarding = safeguardingFilter.value || 'ALL';
+    currentPage = 1;
+    await resetAndLoad();
+  });
+  missingToggle?.addEventListener('click', async () => {
+    withoutCard = !withoutCard;
+    missingToggle.classList.toggle('active', withoutCard);
+    missingToggle.setAttribute('aria-pressed', withoutCard ? 'true' : 'false');
     currentPage = 1;
     await resetAndLoad();
   });
@@ -344,7 +359,7 @@ export async function bindTessereEvents() {
   btnExport?.addEventListener('click', async () => {
     try {
       const all = await fetchAllPaged(({ limit, offset }) =>
-        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding })
+        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding, withoutCard })
       );
 
       const EXPORT_COLS = [

@@ -809,6 +809,13 @@ select option{
   padding: 0 12px;
 }
 
+.tessere-toggle-row{
+  width: 100%;
+  display: flex;
+  margin-top: 2px;
+}
+
+
 /* mobile */
 @media (max-width: 640px){
   .search-row{
