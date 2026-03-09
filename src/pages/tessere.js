@@ -12,6 +12,14 @@ function esc(s) {
     .replaceAll("'", '&#039;');
 }
 
+function formatDateIt(value) {
+  const s = String(value ?? '').trim();
+  if (!s) return '—';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return esc(s);
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
 export async function renderTessere() {
   return `
   <div class="stack">
@@ -87,6 +95,7 @@ export async function renderTessere() {
             <tr>
               <th>Quota</th>
               <th>Socio</th>
+              <th>Dati</th>
               <th>Tessera</th>
               <th>Note</th>
           
@@ -161,7 +170,12 @@ export async function bindTessereEvents() {
         <td><b>${r.nr_quota ?? '—'}</b></td>
         <td>
           <b>${esc(r.display_name)}</b>
-          <div class="meta">${r.ruolo ? esc(r.ruolo) : ''} • CF: ${r.codice_fiscale ?? '—'}</div>
+          <div class="meta">${r.ruolo ? esc(r.ruolo) : '—'}</div>
+        </td>
+        <td>
+          <div class="meta"><b>CF:</b> ${esc(r.codice_fiscale ?? '—')}</div>
+          <div class="meta"><b>Data nascita:</b> ${formatDateIt(r.data_nascita)}</div>
+          <div class="meta"><b>Luogo nascita:</b> ${esc(r.luogo_nascita ?? '—')}</div>
         </td>
         <td>${esc(r.nr_tessera ?? '—')}</td>
         <td>${esc(!r.note || r.note == '' ? '—' : r.note)}</td>

@@ -33,6 +33,76 @@ function formatConsent(value) {
   return '—';
 }
 
+const CF_MONTH_MAP = {
+  A: '01',
+  B: '02',
+  C: '03',
+  D: '04',
+  E: '05',
+  H: '06',
+  L: '07',
+  M: '08',
+  P: '09',
+  R: '10',
+  S: '11',
+  T: '12',
+};
+
+const CATASTAL_CODES_URL = 'https://cdn.jsdelivr.net/gh/matteocontrini/comuni-json@master/comuni.json';
+let catastalCodesMapPromise = null;
+
+async function getCatastalCodesMap() {
+  if (!catastalCodesMapPromise) {
+    catastalCodesMapPromise = fetch(CATASTAL_CODES_URL)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Impossibile caricare i codici catastali');
+        const rows = await res.json();
+        const map = new Map();
+        for (const row of (rows ?? [])) {
+          const code = String(row?.codiceCatastale ?? '').trim().toUpperCase();
+          const name = String(row?.nome ?? '').trim();
+          if (code && name && !map.has(code)) map.set(code, name);
+        }
+        return map;
+      })
+      .catch(() => new Map());
+  }
+  return catastalCodesMapPromise;
+}
+
+async function getComuneNameFromCatastalCode(codeRaw) {
+  const code = String(codeRaw ?? '').trim().toUpperCase();
+  if (!code) return '';
+
+  const map = await getCatastalCodesMap();
+  return map.get(code) ?? code;
+}
+
+function decodeCodiceFiscale(cfRaw) {
+  const cf = String(cfRaw || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{16}$/.test(cf)) return null;
+
+  const year2 = Number(cf.slice(6, 8));
+  const monthCode = cf[8];
+  const dayCode = Number(cf.slice(9, 11));
+  const placeCode = cf.slice(11, 15);
+
+  const month = CF_MONTH_MAP[monthCode];
+  if (!month || !Number.isFinite(year2) || !Number.isFinite(dayCode)) return null;
+
+  const day = dayCode > 40 ? dayCode - 40 : dayCode;
+  if (day < 1 || day > 31) return null;
+
+  const nowYY = Number(new Date().getFullYear().toString().slice(-2));
+  const year = year2 <= nowYY ? 2000 + year2 : 1900 + year2;
+  const birthDate = `${year}-${month}-${String(day).padStart(2, '0')}`;
+
+  return {
+    birthDate,
+    birthPlaceCode: placeCode,
+  };
+}
+
 function getPeopleSectionConfig() {
   const isNonSoci = location.hash === '#/non-soci';
   return {
@@ -809,10 +879,22 @@ export async function openPersonEditor({ personId, onSaved }) {
           <option value="ALTRO">ALTRO</option>
         </select>
       </label>
-       <label class="field">
+      <label class="field">
         <span>Codice fiscale</span>
         <input name="codice_fiscale" placeholder="..."/>
       </label>
+    </div>
+
+    <div class="form-row cols-3">
+      <label class="field size-md">
+        <span>Data di nascita</span>
+        <input name="data_nascita" type="date"/>
+      </label>
+      <label class="field">
+        <span>Luogo di nascita</span>
+        <input name="luogo_nascita" placeholder="Comune o codice catastale"/>
+      </label>
+      <div></div>
     </div>
 
     <div class="form-row cols-3">
@@ -985,6 +1067,8 @@ export async function openPersonEditor({ personId, onSaved }) {
       telefono: full.contact?.telefono ?? '',
       email: full.contact?.email ?? '',
       codice_fiscale: full.membership?.codice_fiscale ?? '',
+      data_nascita: full.membership?.data_nascita ?? '',
+      luogo_nascita: full.membership?.luogo_nascita ?? '',
       consenso_whatsapp: full.contact?.consenso_whatsapp === null || full.contact?.consenso_whatsapp === undefined
         ? ''
         : String(full.contact.consenso_whatsapp),
@@ -1096,6 +1180,26 @@ export async function openPersonEditor({ personId, onSaved }) {
 
   form.querySelector('[data-cancel]').addEventListener('click', close);
 
+  const cfField = form.querySelector('[name="codice_fiscale"]');
+  const birthDateField = form.querySelector('[name="data_nascita"]');
+  const birthPlaceField = form.querySelector('[name="luogo_nascita"]');
+  const tryPrefillFromCf = async () => {
+    if (!cfField || !birthDateField || !birthPlaceField) return;
+    const decoded = decodeCodiceFiscale(cfField.value);
+    if (!decoded) return;
+
+    const comuneName = await getComuneNameFromCatastalCode(decoded.birthPlaceCode);
+
+    if (!String(birthDateField.value || '').trim()) {
+      birthDateField.value = decoded.birthDate;
+    }
+    if (!String(birthPlaceField.value || '').trim()) {
+      birthPlaceField.value = comuneName;
+    }
+  };
+  cfField?.addEventListener('blur', () => { void tryPrefillFromCf(); });
+  cfField?.addEventListener('change', () => { void tryPrefillFromCf(); });
+
   const delBtn = form.querySelector('[data-delete]');
   if (delBtn) {
     delBtn.addEventListener('click', async () => {
@@ -1157,6 +1261,8 @@ export async function openPersonEditor({ personId, onSaved }) {
         upsertMembership(id, {
           nr_tessera: strOrNull(fd.get('nr_tessera')),
           codice_fiscale: strOrNull(fd.get('codice_fiscale')),
+          data_nascita: strOrNull(fd.get('data_nascita')),
+          luogo_nascita: strOrNull(fd.get('luogo_nascita')),
           safeguarding: safeguardingBool,
           note: strOrNull(fd.get('note')),
           flag_non_socio: flagNonSocioBool,
