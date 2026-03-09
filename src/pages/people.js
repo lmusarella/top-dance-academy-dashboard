@@ -989,7 +989,7 @@ export async function openPersonEditor({ personId, onSaved }) {
         ? ''
         : String(full.contact.consenso_whatsapp),
       safeguarding: full.membership?.safeguarding === null || full.membership?.safeguarding === undefined ? '' : String(full.membership?.safeguarding),
-      flag_non_socio: full.person?.flag_non_socio === null || full.person?.flag_non_socio === undefined ? '' : String(full.person?.flag_non_socio),
+      flag_non_socio: full.membership?.flag_non_socio === null || full.membership?.flag_non_socio === undefined ? '' : String(full.membership?.flag_non_socio),
       nr_tessera: full.membership?.nr_tessera ?? '',
       note: full.membership?.note ?? '',
       scadenza: full.certificate?.scadenza ?? '',
