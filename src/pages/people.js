@@ -1131,8 +1131,7 @@ export async function openPersonEditor({ personId, onSaved }) {
       display_name: String(fd.get('display_name') || '').trim(),
       nr_quota: numOrNull(fd.get('nr_quota')),
       corso: String(fd.get('corso') || ''),
-      ruolo: String(fd.get('ruolo') || 'ALLIEVO'),
-      flag_non_socio: flagNonSocioBool,
+      ruolo: String(fd.get('ruolo') || 'ALLIEVO')
     };
 
     if (!payloadPerson.display_name) {
@@ -1160,6 +1159,7 @@ export async function openPersonEditor({ personId, onSaved }) {
           codice_fiscale: strOrNull(fd.get('codice_fiscale')),
           safeguarding: safeguardingBool,
           note: strOrNull(fd.get('note')),
+          flag_non_socio: flagNonSocioBool,
         }),
         upsertCertificate(id, {
           scadenza: strOrNull(fd.get('scadenza')),
