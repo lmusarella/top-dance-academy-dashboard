@@ -20,18 +20,6 @@ function esc(value) {
     .replaceAll("'", '&#039;');
 }
 
-function formatDate(value) {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString('it-IT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function normalizeErr(err) {
   const msg = err?.message || 'Operazione non riuscita';
@@ -70,7 +58,7 @@ function packageAccordionItem(item) {
             <span>Usate: ${item.used_cards ?? 0}</span>
           </div>
         </div>
-        <div class="muted">${formatDate(item.created_at)}</div>
+        
       </summary>
       <div class="acc-body">
         <div class="row" style="margin-bottom:10px; gap:8px; flex-wrap:wrap;">
@@ -99,8 +87,9 @@ function packageAccordionItem(item) {
 
 function cardRow(card) {
   const status = card.status ?? 'available';
-  const canBlock = status !== 'blocked';
-  const canAssign = status === 'available';
+  const isAssigned = status === 'assigned';
+  const isBlocked = status === 'blocked';
+  const isUsed = status === 'used';
 
   return `
     <tr>
@@ -108,8 +97,8 @@ function cardRow(card) {
       <td>${cardStatusLabel(status)}</td>
       <td>
         <div class="row" style="gap:8px; flex-wrap:wrap;">
-          <button class="btn ghost" type="button" data-card-action="assign" data-card-id="${card.id}" ${canAssign ? '' : 'disabled'}>Assegna</button>
-          <button class="btn ghost" type="button" data-card-action="block" data-card-id="${card.id}" ${canBlock ? '' : 'disabled'}>Blocca</button>
+          <button class="chip-btn ${isAssigned ? 'active' : ''}" type="button" data-card-toggle="assigned" data-card-id="${card.id}" aria-pressed="${isAssigned ? 'true' : 'false'}" ${isUsed ? 'disabled' : ''}>Assegnata</button>
+          <button class="chip-btn ${isBlocked ? 'active' : ''}" type="button" data-card-toggle="blocked" data-card-id="${card.id}" aria-pressed="${isBlocked ? 'true' : 'false'}" ${isUsed ? 'disabled' : ''}>Bloccata</button>
         </div>
       </td>
     </tr>
@@ -421,9 +410,9 @@ export async function bindPackageManagementEvents() {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
-    const cardActionBtn = target.closest('[data-card-action]');
+    const cardActionBtn = target.closest('[data-card-toggle]');
     if (cardActionBtn) {
-      const action = cardActionBtn.getAttribute('data-card-action');
+      const toggle = cardActionBtn.getAttribute('data-card-toggle');
       const cardId = Number(cardActionBtn.getAttribute('data-card-id'));
       const details = cardActionBtn.closest('[data-package-id]');
       const packageId = Number(details?.getAttribute('data-package-id'));
@@ -431,8 +420,16 @@ export async function bindPackageManagementEvents() {
       if (!cardId || !packageId || !cardsBodyEl) return;
 
       try {
-        if (action === 'assign') await updateCardStatus(cardId, 'assigned');
-        if (action === 'block') await updateCardStatus(cardId, 'blocked');
+        const currentPressed = cardActionBtn.getAttribute('aria-pressed') === 'true';
+        let nextStatus = 'available';
+
+        if (toggle === 'assigned') {
+          nextStatus = currentPressed ? 'available' : 'assigned';
+        } else if (toggle === 'blocked') {
+          nextStatus = currentPressed ? 'available' : 'blocked';
+        }
+
+        await updateCardStatus(cardId, nextStatus);
         await loadCardsForPackage(packageId, cardsBodyEl);
         await loadPackages();
       } catch (err) {
