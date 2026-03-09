@@ -38,7 +38,7 @@ function getPeopleSectionConfig() {
   return {
     isNonSoci,
     title: isNonSoci ? 'Non Soci' : 'Soci',
-    subtitle: isNonSoci ? 'Elenco persone non associate (flag socio: No)' : 'Ordinati in ordine alfabetico',
+    subtitle: isNonSoci ? 'Elenco persone non associate - Ordinati in ordine alfabetico' : 'Elenco persone associate - Ordinati in ordine alfabetico',
     newLabel: 'Nuova Scheda',
     exportPrefix: isNonSoci ? 'topdance_non_soci' : 'topdance_soci',
     fixedFlagNonSocio: isNonSoci ? 'TRUE' : 'FALSE',
@@ -131,8 +131,7 @@ export async function renderPeople() {
         <table class="table">
           <thead>
             <tr>
-              <th>Socio</th>
-              <th>Flag socio</th>
+              <th>Socio</th>           
               <th>Certificato</th>
               <th>Contatti</th>
               <th>Corsi</th>          
@@ -602,7 +601,6 @@ export async function bindPeopleEvents() {
           <b>${esc(r.display_name)}</b>
          <div class="meta">${r.ruolo ? esc(r.ruolo) : ''} • Quota: ${r.nr_quota ?? '—'} • Tessera: ${esc(r.nr_tessera ?? '—')}</div>
         </td>
-        <td>${r.flag_non_socio === true ? '❌ No' : '✅ Sì'}</td>
         <td>
           <div class="meta">
             <span>${r.cert_status == 'MISSING' ? '❌ Assente' : r.cert_status == 'EXPIRED' ? '🔴 Scaduto' : r.cert_status == 'IN_SCADENZA' ? '🔵 In Scadenza':r.cert_status == 'NON_RICHIESTO' ? '🟡 Esente' : '🟢 Ok'}</span>
@@ -833,7 +831,7 @@ export async function openPersonEditor({ personId, onSaved }) {
         <span>Flag socio</span>
         <select name="flag_non_socio">
           <option value="">—</option>
-          <option value="false">✅ Sì</option>
+          <option value="false">🟢 Sì</option>
           <option value="true">❌ No</option>
         </select>
       </label>

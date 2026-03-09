@@ -48,7 +48,7 @@ export async function renderTessere() {
           <div class="cert-filter">
             <select id="tessereFlagSocioFilter">
               <option value="ALL">Flag socio: Tutti</option>
-              <option value="SOCIO">Flag socio: ✅ Sì</option>
+              <option value="SOCIO">Flag socio: 🟢 Sì</option>
               <option value="NON_SOCIO">Flag socio: ❌ No</option>
             </select>
           </div>
@@ -166,7 +166,7 @@ export async function bindTessereEvents() {
         <td>${esc(r.nr_tessera ?? '—')}</td>
         <td>${esc(!r.note || r.note == '' ? '—' : r.note)}</td>
         <td>${esc(r.safeguarding ? '🟢': '❌')}</td>
-        <td>${esc(r.flag_non_socio === true ? '❌' : '✅')}</td>
+        <td>${esc(r.flag_non_socio === true ? '❌' : '🟢')}</td>
         <td class="right">
           <button class="icon-btn sm" data-edit="${r.person_id ?? r.id ?? ''}" title="Modifica">✎</button>
         </td>
