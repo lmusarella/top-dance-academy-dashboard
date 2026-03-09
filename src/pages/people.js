@@ -48,6 +48,36 @@ const CF_MONTH_MAP = {
   T: '12',
 };
 
+const CATASTAL_CODES_URL = 'https://cdn.jsdelivr.net/gh/matteocontrini/comuni-json@master/comuni.json';
+let catastalCodesMapPromise = null;
+
+async function getCatastalCodesMap() {
+  if (!catastalCodesMapPromise) {
+    catastalCodesMapPromise = fetch(CATASTAL_CODES_URL)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Impossibile caricare i codici catastali');
+        const rows = await res.json();
+        const map = new Map();
+        for (const row of (rows ?? [])) {
+          const code = String(row?.codiceCatastale ?? '').trim().toUpperCase();
+          const name = String(row?.nome ?? '').trim();
+          if (code && name && !map.has(code)) map.set(code, name);
+        }
+        return map;
+      })
+      .catch(() => new Map());
+  }
+  return catastalCodesMapPromise;
+}
+
+async function getComuneNameFromCatastalCode(codeRaw) {
+  const code = String(codeRaw ?? '').trim().toUpperCase();
+  if (!code) return '';
+
+  const map = await getCatastalCodesMap();
+  return map.get(code) ?? code;
+}
+
 function decodeCodiceFiscale(cfRaw) {
   const cf = String(cfRaw || '').trim().toUpperCase();
   if (!/^[A-Z0-9]{16}$/.test(cf)) return null;
@@ -69,7 +99,7 @@ function decodeCodiceFiscale(cfRaw) {
 
   return {
     birthDate,
-    birthPlace: placeCode,
+    birthPlaceCode: placeCode,
   };
 }
 
@@ -1153,20 +1183,22 @@ export async function openPersonEditor({ personId, onSaved }) {
   const cfField = form.querySelector('[name="codice_fiscale"]');
   const birthDateField = form.querySelector('[name="data_nascita"]');
   const birthPlaceField = form.querySelector('[name="luogo_nascita"]');
-  const tryPrefillFromCf = () => {
+  const tryPrefillFromCf = async () => {
     if (!cfField || !birthDateField || !birthPlaceField) return;
     const decoded = decodeCodiceFiscale(cfField.value);
     if (!decoded) return;
+
+    const comuneName = await getComuneNameFromCatastalCode(decoded.birthPlaceCode);
 
     if (!String(birthDateField.value || '').trim()) {
       birthDateField.value = decoded.birthDate;
     }
     if (!String(birthPlaceField.value || '').trim()) {
-      birthPlaceField.value = decoded.birthPlace;
+      birthPlaceField.value = comuneName;
     }
   };
-  cfField?.addEventListener('blur', tryPrefillFromCf);
-  cfField?.addEventListener('change', tryPrefillFromCf);
+  cfField?.addEventListener('blur', () => { void tryPrefillFromCf(); });
+  cfField?.addEventListener('change', () => { void tryPrefillFromCf(); });
 
   const delBtn = form.querySelector('[data-delete]');
   if (delBtn) {
