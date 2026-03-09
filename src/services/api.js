@@ -292,6 +292,27 @@ export async function countPeople({
   return count ?? 0;
 }
 
+export async function listCardPackagesSummary() {
+  const { data, error } = await supabase
+    .from('v_card_packages_summary')
+    .select('*')
+    .order('package_order', { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createCardPackage({ code, name, startNumber, endNumber }) {
+  const { error } = await supabase.rpc('create_card_package', {
+    p_code: code,
+    p_name: name,
+    p_start_number: startNumber,
+    p_end_number: endNumber,
+  });
+
+  if (error) throw error;
+}
+
 function normalizeCertStatuses(certStatus) {
   const rawStatuses = Array.isArray(certStatus) ? certStatus : [certStatus];
   const cleaned = rawStatuses.filter(Boolean);
