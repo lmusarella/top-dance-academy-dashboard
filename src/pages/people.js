@@ -765,6 +765,66 @@ function esc(s) {
     .replaceAll("'", '&#039;');
 }
 
+const CF_MONTH_MAP = {
+  A: 1,
+  B: 2,
+  C: 3,
+  D: 4,
+  E: 5,
+  H: 6,
+  L: 7,
+  M: 8,
+  P: 9,
+  R: 10,
+  S: 11,
+  T: 12,
+};
+
+const CF_OMOCODIA_DIGITS = {
+  L: '0',
+  M: '1',
+  N: '2',
+  P: '3',
+  Q: '4',
+  R: '5',
+  S: '6',
+  T: '7',
+  U: '8',
+  V: '9',
+};
+
+function cfCharToDigit(char) {
+  if (/\d/.test(char)) return char;
+  return CF_OMOCODIA_DIGITS[char] ?? null;
+}
+
+function decodeFiscalCode(rawCf) {
+  const cf = String(rawCf ?? '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{16}$/.test(cf)) return null;
+
+  const yearChars = cf.slice(6, 8);
+  const monthChar = cf[8];
+  const dayChars = cf.slice(9, 11);
+
+  const year = Number(`${cfCharToDigit(yearChars[0]) ?? ''}${cfCharToDigit(yearChars[1]) ?? ''}`);
+  const month = CF_MONTH_MAP[monthChar];
+  const dayRaw = Number(`${cfCharToDigit(dayChars[0]) ?? ''}${cfCharToDigit(dayChars[1]) ?? ''}`);
+
+  if (!Number.isFinite(year) || !Number.isFinite(dayRaw) || !month) return null;
+
+  const day = dayRaw > 40 ? dayRaw - 40 : dayRaw;
+  if (day < 1 || day > 31) return null;
+
+  const currentYY = new Date().getFullYear() % 100;
+  const fullYear = year <= currentYY ? 2000 + year : 1900 + year;
+  const dateIso = `${String(fullYear).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  return {
+    birthDate: dateIso,
+    birthPlaceCode: cf.slice(11, 15),
+  };
+}
+
 /**
  * Modal editor (create/edit). Esposta per essere usata anche dalla dashboard.
  */
@@ -812,6 +872,17 @@ export async function openPersonEditor({ personId, onSaved }) {
        <label class="field">
         <span>Codice fiscale</span>
         <input name="codice_fiscale" placeholder="..."/>
+      </label>
+    </div>
+
+    <div class="form-row cols-3">
+      <label class="field">
+        <span>Data di nascita (da CF)</span>
+        <input name="birth_date_from_cf" type="date" readonly/>
+      </label>
+      <label class="field">
+        <span>Luogo di nascita (codice catastale da CF)</span>
+        <input name="birth_place_code_from_cf" placeholder="H501" readonly/>
       </label>
     </div>
 
@@ -926,8 +997,25 @@ export async function openPersonEditor({ personId, onSaved }) {
   });
 
   const coursesBox = form.querySelector('#coursesBox');
+  const fiscalCodeField = form.querySelector('[name="codice_fiscale"]');
+  const birthDateField = form.querySelector('[name="birth_date_from_cf"]');
+  const birthPlaceCodeField = form.querySelector('[name="birth_place_code_from_cf"]');
   let allCourses = [];
   let selectedCourseIds = [];
+
+  const applyFiscalCodeDecode = () => {
+    const decoded = decodeFiscalCode(fiscalCodeField?.value);
+    if (!birthDateField || !birthPlaceCodeField) return;
+    if (!decoded) {
+      birthDateField.value = '';
+      birthPlaceCodeField.value = '';
+      return;
+    }
+    birthDateField.value = decoded.birthDate;
+    birthPlaceCodeField.value = decoded.birthPlaceCode;
+  };
+
+  fiscalCodeField?.addEventListener('input', applyFiscalCodeDecode);
 
   // render lista corsi come checkbox
   function renderCoursesOptions(allCourses, selectedIds) {
@@ -996,6 +1084,7 @@ export async function openPersonEditor({ personId, onSaved }) {
       type: full.certificate?.type ?? '',
       fonte: full.certificate?.fonte ?? '',
     });
+    applyFiscalCodeDecode();
   }
 
   // preload se edit
