@@ -352,6 +352,61 @@ export async function createCardPackage({ code, name, startNumber, endNumber }) 
   if (error) throw error;
 }
 
+export async function listCardsByPackage(packageId) {
+  const { data, error } = await supabase
+    .from('cards')
+    .select('id, package_id, card_number, status')
+    .eq('package_id', packageId)
+    .order('card_number', { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function updateCardStatus(cardId, status) {
+  const { error } = await supabase
+    .from('cards')
+    .update({ status })
+    .eq('id', cardId);
+
+  if (error) throw error;
+}
+
+export async function addCardsToPackage({ packageId, startNumber, endNumber, autoAssign = true }) {
+  const cardsToInsert = [];
+  for (let cardNumber = startNumber; cardNumber <= endNumber; cardNumber += 1) {
+    cardsToInsert.push({
+      package_id: packageId,
+      card_number: cardNumber,
+      status: autoAssign ? 'assigned' : 'available',
+    });
+  }
+
+  const { error } = await supabase
+    .from('cards')
+    .insert(cardsToInsert);
+
+  if (error) throw error;
+}
+
+export async function updateCardPackage(packageId, payload) {
+  const { error } = await supabase
+    .from('card_packages')
+    .update(payload)
+    .eq('id', packageId);
+
+  if (error) throw error;
+}
+
+export async function deleteCardPackage(packageId) {
+  const { error } = await supabase
+    .from('card_packages')
+    .delete()
+    .eq('id', packageId);
+
+  if (error) throw error;
+}
+
 function normalizeCertStatuses(certStatus) {
   const rawStatuses = Array.isArray(certStatus) ? certStatus : [certStatus];
   const cleaned = rawStatuses.filter(Boolean);
