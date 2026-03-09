@@ -16,6 +16,7 @@ const routes = {
   '#/login': { render: renderLogin, bind: bindLoginEvents, auth: false },
   '#/dashboard': { render: renderDashboard, bind: bindDashboardEvents, auth: true },
   '#/people': { render: renderPeople, bind: bindPeopleEvents, auth: true },
+  '#/non-soci': { render: renderPeople, bind: bindPeopleEvents, auth: true },
   '#/tessere': { render: renderTessere, bind: bindTessereEvents, auth: true },
   '#/courses': { render: renderCourses, bind: bindCoursesEvents, auth: true },
   '#/settings': { render: renderSettings, bind: bindSettingsEvents, auth: true },

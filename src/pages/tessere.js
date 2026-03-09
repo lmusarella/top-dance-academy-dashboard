@@ -46,10 +46,10 @@ export async function renderTessere() {
             </select>
           </div>
           <div class="cert-filter">
-            <select id="tessereNonSocioFilter">
-              <option value="ALL">Flag non socio: Tutti</option>
-              <option value="TRUE">Flag non socio: ✅ Sì</option>
-              <option value="FALSE">Flag non socio: ❌ No</option>
+            <select id="tessereFlagSocioFilter">
+              <option value="ALL">Flag socio: Tutti</option>
+              <option value="SOCIO">Flag socio: ✅ Sì</option>
+              <option value="NON_SOCIO">Flag socio: ❌ No</option>
             </select>
           </div>
         </div>
@@ -91,7 +91,7 @@ export async function renderTessere() {
               <th>Note</th>
           
               <th>Modulo Safeguarding</th>
-              <th>Flag non socio</th>
+              <th>Flag socio</th>
               <th class="right">Azioni</th>
             </tr>
           </thead>
@@ -113,7 +113,7 @@ export async function bindTessereEvents() {
   const qInput = document.querySelector('#tessereQ');
   const roleFilter = document.querySelector('#tessereRoleFilter');
   const safeguardingFilter = document.querySelector('#tessereSafeguardingFilter');
-  const nonSocioFilter = document.querySelector('#tessereNonSocioFilter');
+  const flagSocioFilter = document.querySelector('#tessereFlagSocioFilter');
   const shownEl = document.querySelector('#tessereShown');
   const totalEl = document.querySelector('#tessereTotal');
   const missingToggle = document.querySelector('#tessereMissingToggle');
@@ -166,7 +166,7 @@ export async function bindTessereEvents() {
         <td>${esc(r.nr_tessera ?? '—')}</td>
         <td>${esc(!r.note || r.note == '' ? '—' : r.note)}</td>
         <td>${esc(r.safeguarding ? '🟢': '❌')}</td>
-        <td>${esc(r.flag_non_socio ? '✅': '❌')}</td>
+        <td>${esc(r.flag_non_socio === true ? '❌' : '✅')}</td>
         <td class="right">
           <button class="icon-btn sm" data-edit="${r.person_id ?? r.id ?? ''}" title="Modifica">✎</button>
         </td>
@@ -334,8 +334,9 @@ export async function bindTessereEvents() {
     currentPage = 1;
     await resetAndLoad();
   });
-  nonSocioFilter?.addEventListener('change', async () => {
-    flagNonSocio = nonSocioFilter.value || 'ALL';
+  flagSocioFilter?.addEventListener('change', async () => {
+    const selected = flagSocioFilter.value || 'ALL';
+    flagNonSocio = selected === 'SOCIO' ? 'FALSE' : selected === 'NON_SOCIO' ? 'TRUE' : 'ALL';
     currentPage = 1;
     await resetAndLoad();
   });

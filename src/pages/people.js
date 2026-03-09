@@ -32,17 +32,30 @@ function formatConsent(value) {
   if (value === false) return 'No 👎';
   return '—';
 }
+
+function getPeopleSectionConfig() {
+  const isNonSoci = location.hash === '#/non-soci';
+  return {
+    isNonSoci,
+    title: isNonSoci ? 'Non Soci' : 'Soci',
+    subtitle: isNonSoci ? 'Elenco persone non associate (flag socio: No)' : 'Ordinati in ordine alfabetico',
+    newLabel: isNonSoci ? 'Nuovo Non Socio' : 'Nuovo Socio',
+    exportPrefix: isNonSoci ? 'topdance_non_soci' : 'topdance_soci',
+    fixedFlagNonSocio: isNonSoci ? 'TRUE' : 'FALSE',
+  };
+}
 export async function renderPeople() {
+  const section = getPeopleSectionConfig();
   return `
   <div class="stack">
     <section class="panel glass">
       <div class="panel-head">
         <div>
-          <div class="h1">Soci</div>
-                 <div class="h2">Ordinati in ordine alfabetico</div>
+          <div class="h1">${section.title}</div>
+                 <div class="h2">${section.subtitle}</div>
         </div>
         <div class="panel-actions">       
-          <button class="btn primary" id="btnNew">Nuovo Socio</button>       
+          <button class="btn primary" id="btnNew">${section.newLabel}</button>       
           <button class="btn ghost" id="btnExport">⬇ Export</button>
         </div>
       </div>
@@ -119,6 +132,7 @@ export async function renderPeople() {
           <thead>
             <tr>
               <th>Socio</th>
+              <th>Flag socio</th>
               <th>Certificato</th>
               <th>Contatti</th>
               <th>Corsi</th>          
@@ -138,6 +152,9 @@ export async function renderPeople() {
 }
 
 export async function bindPeopleEvents() {
+  const section = getPeopleSectionConfig();
+  const fixedFlagNonSocio = section.fixedFlagNonSocio;
+
   const body = document.querySelector('#peopleBody');
   const status = document.querySelector('#peopleStatus');
   const qInput = document.querySelector('#peopleQ');
@@ -444,7 +461,8 @@ export async function bindPeopleEvents() {
     const all = await fetchAllPaged(({ limit, offset }) =>
       listPeoplePaged({
         q: q, limit, offset, certStatus: certStatuses, certType: certTypes, ruolo: role,
-        courseIds: selectedCourseIds
+        courseIds: selectedCourseIds,
+        flagNonSocio: fixedFlagNonSocio
       })
     );
 
@@ -477,7 +495,7 @@ export async function bindPeopleEvents() {
     });
 
     exportToXlsx({
-      filename: `topdance_soci_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      filename: `${section.exportPrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`,
       sheets: [{ name: 'People', rows: toExport }]
     });
   });
@@ -584,6 +602,7 @@ export async function bindPeopleEvents() {
           <b>${esc(r.display_name)}</b>
          <div class="meta">${r.ruolo ? esc(r.ruolo) : ''} • Quota: ${r.nr_quota ?? '—'} • Tessera: ${esc(r.nr_tessera ?? '—')}</div>
         </td>
+        <td>${r.flag_non_socio === true ? '❌ No' : '✅ Sì'}</td>
         <td>
           <div class="meta">
             <span>${r.cert_status == 'MISSING' ? '❌ Assente' : r.cert_status == 'EXPIRED' ? '🔴 Scaduto' : r.cert_status == 'IN_SCADENZA' ? '🔵 In Scadenza':r.cert_status == 'NON_RICHIESTO' ? '🟡 Esente' : '🟢 Ok'}</span>
@@ -633,7 +652,8 @@ export async function bindPeopleEvents() {
       const offset = (currentPage - 1) * pageSize;
       const rows = await listPeoplePaged({
         q, limit: pageSize, offset, certStatus: certStatuses, certType: certTypes, ruolo: role,
-        courseIds: selectedCourseIds
+        courseIds: selectedCourseIds,
+        flagNonSocio: fixedFlagNonSocio
       });
       if (rows.length === 0) {
         body.innerHTML = '';
@@ -653,14 +673,14 @@ export async function bindPeopleEvents() {
   async function resetAndLoad() {
     body.innerHTML = '';
     try {
-      const totalAll = await countPeople({ q: '' });  // totale soci
+      const totalAll = await countPeople({ q: '', flagNonSocio: fixedFlagNonSocio });
       const hasFilters = q
         || (certStatuses?.length && !certStatuses.includes('ALL'))
         || certTypes.length > 0
         || selectedCourseIds.length > 0
         || role !== 'ALL';
       totalFiltered = hasFilters
-        ? await countPeople({ q, certStatus: certStatuses, certType: certTypes, courseIds: selectedCourseIds, ruolo: role })
+        ? await countPeople({ q, certStatus: certStatuses, certType: certTypes, courseIds: selectedCourseIds, ruolo: role, flagNonSocio: fixedFlagNonSocio })
         : totalAll;
       setCounts({ totalAll, totalShown: totalFiltered });
       updatePagination();
@@ -810,11 +830,11 @@ export async function openPersonEditor({ personId, onSaved }) {
         </select>
       </label>
       <label class="field size-sm">
-        <span>Flag non socio</span>
+        <span>Flag socio</span>
         <select name="flag_non_socio">
           <option value="">—</option>
-          <option value="true">✅ Sì</option>
-          <option value="false">❌ No</option>
+          <option value="false">✅ Sì</option>
+          <option value="true">❌ No</option>
         </select>
       </label>
       <label class="field size-md">
@@ -1099,8 +1119,8 @@ export async function openPersonEditor({ personId, onSaved }) {
     e.preventDefault();
 
     const fd = new FormData(form);
-    const flagNonSocioRaw = String(fd.get('flag_non_socio') || '').trim();
-    const flagNonSocioBool = flagNonSocioRaw === '' ? null : flagNonSocioRaw === 'true';
+    const flagSocioRaw = String(fd.get('flag_non_socio') || '').trim();
+    const flagNonSocioBool = flagSocioRaw === '' ? null : flagSocioRaw === 'true';
 
     const payloadPerson = {
       ...(isEdit ? { id: personId } : {}),

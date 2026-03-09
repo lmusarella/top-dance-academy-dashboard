@@ -110,7 +110,9 @@ export async function listPeoplePaged({
   certStatus = 'ALL',
   certType = [],
   ruolo = 'ALL',   // ALL | OK | EXPIRED | MISSING | EXPIRED_OR_MISSING | array
-  courseIds = []          // array di int
+  courseIds = [],          // array di int
+  flagNonSocio = 'ALL'
+
 } = {}) {
   let query = supabase
     .from('v_people_search')
@@ -133,8 +135,13 @@ export async function listPeoplePaged({
   if (ruolo && ruolo !== 'ALL') {
     query = query.eq('ruolo', ruolo);   
   }
-
-  
+  if (flagNonSocio && flagNonSocio !== 'ALL') {
+    if (flagNonSocio === 'TRUE') {
+      query = query.eq('flag_non_socio', true);
+    } else if (flagNonSocio === 'FALSE') {
+      query = query.or('flag_non_socio.is.null,flag_non_socio.eq.false');
+    }
+  }
 
   // --- filtri corsi (match ANY) ---
   const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
