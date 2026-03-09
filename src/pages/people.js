@@ -1,7 +1,7 @@
 import {
   getPersonFull,
   upsertPerson, upsertContact, upsertMembership, upsertCertificate,
-  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota, searchPeople
+  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota, getFirstAvailableCardNumber, searchPeople
 } from '../services/api.js';
 
 import { toast } from '../ui/toast.js';
@@ -39,7 +39,7 @@ function getPeopleSectionConfig() {
     isNonSoci,
     title: isNonSoci ? 'Non Soci' : 'Soci',
     subtitle: isNonSoci ? 'Elenco persone non associate (flag socio: No)' : 'Ordinati in ordine alfabetico',
-    newLabel: isNonSoci ? 'Nuovo Non Socio' : 'Nuovo Socio',
+    newLabel: 'Nuova Scheda',
     exportPrefix: isNonSoci ? 'topdance_non_soci' : 'topdance_soci',
     fixedFlagNonSocio: isNonSoci ? 'TRUE' : 'FALSE',
   };
@@ -1028,6 +1028,12 @@ export async function openPersonEditor({ personId, onSaved }) {
       nextQuota = Number.isFinite(Number(maxQuota)) ? Number(maxQuota) + 1 : '';
       const quotaField = form.querySelector('[name="nr_quota"]');
       if (quotaField && nextQuota !== '' && !quotaField.value) quotaField.value = String(nextQuota);
+
+      const firstAvailableCard = await getFirstAvailableCardNumber();
+      const cardField = form.querySelector('[name="nr_tessera"]');
+      if (cardField && firstAvailableCard !== null && !String(cardField.value || '').trim()) {
+        cardField.value = String(firstAvailableCard);
+      }
     } catch (e) {
       coursesBox.innerHTML = `<span class="muted">Errore caricamento corsi</span>`;
     }

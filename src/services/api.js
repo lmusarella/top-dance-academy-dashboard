@@ -86,6 +86,22 @@ export async function upsertCertificate(personId, payload) {
   if (error) throw error;
 }
 
+
+
+export async function getFirstAvailableCardNumber() {
+  const { data, error } = await supabase
+    .from('cards')
+    .select('card_number, card_packages!inner(package_order)')
+    .eq('status', 'available')
+    .order('package_order', { foreignTable: 'card_packages', ascending: true })
+    .order('card_number', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.card_number ?? null;
+}
+
 export async function getMaxQuota() {
   const { data, error } = await supabase
     .from('people')
