@@ -86,6 +86,22 @@ export async function upsertCertificate(personId, payload) {
   if (error) throw error;
 }
 
+
+
+export async function getFirstAvailableCardNumber() {
+  const { data, error } = await supabase
+    .from('cards')
+    .select('card_number, card_packages!inner(package_order)')
+    .eq('status', 'available')
+    .order('package_order', { foreignTable: 'card_packages', ascending: true })
+    .order('card_number', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.card_number ?? null;
+}
+
 export async function getMaxQuota() {
   const { data, error } = await supabase
     .from('people')
@@ -110,7 +126,9 @@ export async function listPeoplePaged({
   certStatus = 'ALL',
   certType = [],
   ruolo = 'ALL',   // ALL | OK | EXPIRED | MISSING | EXPIRED_OR_MISSING | array
-  courseIds = []          // array di int
+  courseIds = [],          // array di int
+  flagNonSocio = 'ALL'
+
 } = {}) {
   let query = supabase
     .from('v_people_search')
@@ -133,8 +151,13 @@ export async function listPeoplePaged({
   if (ruolo && ruolo !== 'ALL') {
     query = query.eq('ruolo', ruolo);   
   }
-
-  
+  if (flagNonSocio && flagNonSocio !== 'ALL') {
+    if (flagNonSocio === 'TRUE') {
+      query = query.eq('flag_non_socio', true);
+    } else if (flagNonSocio === 'FALSE') {
+      query = query.or('flag_non_socio.is.null,flag_non_socio.eq.false');
+    }
+  }
 
   // --- filtri corsi (match ANY) ---
   const ids = (courseIds ?? []).map(Number).filter(Number.isFinite);
@@ -175,6 +198,7 @@ export async function listPeopleByQuotaPaged({
   offset = 0,
   ruolo = '',
   safeguarding = 'ALL',
+  flagNonSocio = 'ALL',
   withoutCard = false,
   excludeCantinmusicaOnly = false
 } = {}) {
@@ -192,6 +216,13 @@ export async function listPeopleByQuotaPaged({
       query = query.eq('safeguarding', true);
     } else if (safeguarding === 'ASSENTE') {
       query = query.or('safeguarding.is.null,safeguarding.eq.false');
+    }
+  }
+  if (flagNonSocio && flagNonSocio !== 'ALL') {
+    if (flagNonSocio === 'TRUE') {
+      query = query.eq('flag_non_socio', true);
+    } else if (flagNonSocio === 'FALSE') {
+      query = query.or('flag_non_socio.is.null,flag_non_socio.eq.false');
     }
   }
   if (withoutCard) {
@@ -234,6 +265,7 @@ export async function countPeople({
   courseIds = [],
   ruolo = 'ALL',
   safeguarding = 'ALL',
+  flagNonSocio = 'ALL',
   withoutCard = false,
   excludeCantinmusicaOnly = false
 } = {}) {
@@ -264,6 +296,13 @@ export async function countPeople({
       query = query.or('safeguarding.is.null,safeguarding.eq.false');
     }
   }
+  if (flagNonSocio && flagNonSocio !== 'ALL') {
+    if (flagNonSocio === 'TRUE') {
+      query = query.eq('flag_non_socio', true);
+    } else if (flagNonSocio === 'FALSE') {
+      query = query.or('flag_non_socio.is.null,flag_non_socio.eq.false');
+    }
+  }
   if (withoutCard) {
     query = query.or('nr_tessera.is.null,nr_tessera.eq.""');
   }
@@ -290,6 +329,27 @@ export async function countPeople({
   const { count, error } = await query;
   if (error) throw error;
   return count ?? 0;
+}
+
+export async function listCardPackagesSummary() {
+  const { data, error } = await supabase
+    .from('v_card_packages_summary')
+    .select('*')
+    .order('package_order', { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createCardPackage({ code, name, startNumber, endNumber }) {
+  const { error } = await supabase.rpc('create_card_package', {
+    p_code: code,
+    p_name: name,
+    p_start_number: startNumber,
+    p_end_number: endNumber,
+  });
+
+  if (error) throw error;
 }
 
 function normalizeCertStatuses(certStatus) {

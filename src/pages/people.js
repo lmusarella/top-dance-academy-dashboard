@@ -1,7 +1,7 @@
 import {
   getPersonFull,
   upsertPerson, upsertContact, upsertMembership, upsertCertificate,
-  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota, searchPeople
+  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota, getFirstAvailableCardNumber, searchPeople
 } from '../services/api.js';
 
 import { toast } from '../ui/toast.js';
@@ -32,17 +32,30 @@ function formatConsent(value) {
   if (value === false) return 'No 👎';
   return '—';
 }
+
+function getPeopleSectionConfig() {
+  const isNonSoci = location.hash === '#/non-soci';
+  return {
+    isNonSoci,
+    title: isNonSoci ? 'Non Soci' : 'Soci',
+    subtitle: isNonSoci ? 'Elenco persone non associate - Ordinati in ordine alfabetico' : 'Elenco persone associate - Ordinati in ordine alfabetico',
+    newLabel: 'Nuova Scheda',
+    exportPrefix: isNonSoci ? 'topdance_non_soci' : 'topdance_soci',
+    fixedFlagNonSocio: isNonSoci ? 'TRUE' : 'FALSE',
+  };
+}
 export async function renderPeople() {
+  const section = getPeopleSectionConfig();
   return `
   <div class="stack">
     <section class="panel glass">
       <div class="panel-head">
         <div>
-          <div class="h1">Soci</div>
-                 <div class="h2">Ordinati in ordine alfabetico</div>
+          <div class="h1">${section.title}</div>
+                 <div class="h2">${section.subtitle}</div>
         </div>
         <div class="panel-actions">       
-          <button class="btn primary" id="btnNew">Nuovo Socio</button>       
+          <button class="btn primary" id="btnNew">${section.newLabel}</button>       
           <button class="btn ghost" id="btnExport">⬇ Export</button>
         </div>
       </div>
@@ -118,7 +131,7 @@ export async function renderPeople() {
         <table class="table">
           <thead>
             <tr>
-              <th>Socio</th>
+              <th>Socio</th>           
               <th>Certificato</th>
               <th>Contatti</th>
               <th>Corsi</th>          
@@ -138,6 +151,9 @@ export async function renderPeople() {
 }
 
 export async function bindPeopleEvents() {
+  const section = getPeopleSectionConfig();
+  const fixedFlagNonSocio = section.fixedFlagNonSocio;
+
   const body = document.querySelector('#peopleBody');
   const status = document.querySelector('#peopleStatus');
   const qInput = document.querySelector('#peopleQ');
@@ -444,7 +460,8 @@ export async function bindPeopleEvents() {
     const all = await fetchAllPaged(({ limit, offset }) =>
       listPeoplePaged({
         q: q, limit, offset, certStatus: certStatuses, certType: certTypes, ruolo: role,
-        courseIds: selectedCourseIds
+        courseIds: selectedCourseIds,
+        flagNonSocio: fixedFlagNonSocio
       })
     );
 
@@ -477,7 +494,7 @@ export async function bindPeopleEvents() {
     });
 
     exportToXlsx({
-      filename: `topdance_soci_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      filename: `${section.exportPrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`,
       sheets: [{ name: 'People', rows: toExport }]
     });
   });
@@ -633,7 +650,8 @@ export async function bindPeopleEvents() {
       const offset = (currentPage - 1) * pageSize;
       const rows = await listPeoplePaged({
         q, limit: pageSize, offset, certStatus: certStatuses, certType: certTypes, ruolo: role,
-        courseIds: selectedCourseIds
+        courseIds: selectedCourseIds,
+        flagNonSocio: fixedFlagNonSocio
       });
       if (rows.length === 0) {
         body.innerHTML = '';
@@ -653,14 +671,14 @@ export async function bindPeopleEvents() {
   async function resetAndLoad() {
     body.innerHTML = '';
     try {
-      const totalAll = await countPeople({ q: '' });  // totale soci
+      const totalAll = await countPeople({ q: '', flagNonSocio: fixedFlagNonSocio });
       const hasFilters = q
         || (certStatuses?.length && !certStatuses.includes('ALL'))
         || certTypes.length > 0
         || selectedCourseIds.length > 0
         || role !== 'ALL';
       totalFiltered = hasFilters
-        ? await countPeople({ q, certStatus: certStatuses, certType: certTypes, courseIds: selectedCourseIds, ruolo: role })
+        ? await countPeople({ q, certStatus: certStatuses, certType: certTypes, courseIds: selectedCourseIds, ruolo: role, flagNonSocio: fixedFlagNonSocio })
         : totalAll;
       setCounts({ totalAll, totalShown: totalFiltered });
       updatePagination();
@@ -807,6 +825,14 @@ export async function openPersonEditor({ personId, onSaved }) {
         <select name="safeguarding">      
           <option value="true">🟢 Ok</option>
           <option value="false">❌ Assente</option>
+        </select>
+      </label>
+      <label class="field size-sm">
+        <span>Flag socio</span>
+        <select name="flag_non_socio">
+          <option value="">—</option>
+          <option value="false">🟢 Sì</option>
+          <option value="true">❌ No</option>
         </select>
       </label>
       <label class="field size-md">
@@ -963,6 +989,7 @@ export async function openPersonEditor({ personId, onSaved }) {
         ? ''
         : String(full.contact.consenso_whatsapp),
       safeguarding: full.membership?.safeguarding === null || full.membership?.safeguarding === undefined ? '' : String(full.membership?.safeguarding),
+      flag_non_socio: full.person?.flag_non_socio === null || full.person?.flag_non_socio === undefined ? '' : String(full.person?.flag_non_socio),
       nr_tessera: full.membership?.nr_tessera ?? '',
       note: full.membership?.note ?? '',
       scadenza: full.certificate?.scadenza ?? '',
@@ -999,6 +1026,12 @@ export async function openPersonEditor({ personId, onSaved }) {
       nextQuota = Number.isFinite(Number(maxQuota)) ? Number(maxQuota) + 1 : '';
       const quotaField = form.querySelector('[name="nr_quota"]');
       if (quotaField && nextQuota !== '' && !quotaField.value) quotaField.value = String(nextQuota);
+
+      const firstAvailableCard = await getFirstAvailableCardNumber();
+      const cardField = form.querySelector('[name="nr_tessera"]');
+      if (cardField && firstAvailableCard !== null && !String(cardField.value || '').trim()) {
+        cardField.value = String(firstAvailableCard);
+      }
     } catch (e) {
       coursesBox.innerHTML = `<span class="muted">Errore caricamento corsi</span>`;
     }
@@ -1090,12 +1123,16 @@ export async function openPersonEditor({ personId, onSaved }) {
     e.preventDefault();
 
     const fd = new FormData(form);
+    const flagSocioRaw = String(fd.get('flag_non_socio') || '').trim();
+    const flagNonSocioBool = flagSocioRaw === '' ? null : flagSocioRaw === 'true';
+
     const payloadPerson = {
       ...(isEdit ? { id: personId } : {}),
       display_name: String(fd.get('display_name') || '').trim(),
       nr_quota: numOrNull(fd.get('nr_quota')),
       corso: String(fd.get('corso') || ''),
       ruolo: String(fd.get('ruolo') || 'ALLIEVO'),
+      flag_non_socio: flagNonSocioBool,
     };
 
     if (!payloadPerson.display_name) {
