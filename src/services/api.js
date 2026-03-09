@@ -175,6 +175,7 @@ export async function listPeopleByQuotaPaged({
   offset = 0,
   ruolo = '',
   safeguarding = 'ALL',
+  flagNonSocio = 'ALL',
   withoutCard = false,
   excludeCantinmusicaOnly = false
 } = {}) {
@@ -192,6 +193,13 @@ export async function listPeopleByQuotaPaged({
       query = query.eq('safeguarding', true);
     } else if (safeguarding === 'ASSENTE') {
       query = query.or('safeguarding.is.null,safeguarding.eq.false');
+    }
+  }
+  if (flagNonSocio && flagNonSocio !== 'ALL') {
+    if (flagNonSocio === 'TRUE') {
+      query = query.eq('flag_non_socio', true);
+    } else if (flagNonSocio === 'FALSE') {
+      query = query.or('flag_non_socio.is.null,flag_non_socio.eq.false');
     }
   }
   if (withoutCard) {
@@ -234,6 +242,7 @@ export async function countPeople({
   courseIds = [],
   ruolo = 'ALL',
   safeguarding = 'ALL',
+  flagNonSocio = 'ALL',
   withoutCard = false,
   excludeCantinmusicaOnly = false
 } = {}) {
@@ -262,6 +271,13 @@ export async function countPeople({
       query = query.eq('safeguarding', true);
     } else if (safeguarding === 'ASSENTE') {
       query = query.or('safeguarding.is.null,safeguarding.eq.false');
+    }
+  }
+  if (flagNonSocio && flagNonSocio !== 'ALL') {
+    if (flagNonSocio === 'TRUE') {
+      query = query.eq('flag_non_socio', true);
+    } else if (flagNonSocio === 'FALSE') {
+      query = query.or('flag_non_socio.is.null,flag_non_socio.eq.false');
     }
   }
   if (withoutCard) {

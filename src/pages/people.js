@@ -809,6 +809,14 @@ export async function openPersonEditor({ personId, onSaved }) {
           <option value="false">❌ Assente</option>
         </select>
       </label>
+      <label class="field size-sm">
+        <span>Flag non socio</span>
+        <select name="flag_non_socio">
+          <option value="">—</option>
+          <option value="true">✅ Sì</option>
+          <option value="false">❌ No</option>
+        </select>
+      </label>
       <label class="field size-md">
         <span>Nr tessera</span>
         <input name="nr_tessera" placeholder="..."/>
@@ -963,6 +971,7 @@ export async function openPersonEditor({ personId, onSaved }) {
         ? ''
         : String(full.contact.consenso_whatsapp),
       safeguarding: full.membership?.safeguarding === null || full.membership?.safeguarding === undefined ? '' : String(full.membership?.safeguarding),
+      flag_non_socio: full.person?.flag_non_socio === null || full.person?.flag_non_socio === undefined ? '' : String(full.person?.flag_non_socio),
       nr_tessera: full.membership?.nr_tessera ?? '',
       note: full.membership?.note ?? '',
       scadenza: full.certificate?.scadenza ?? '',
@@ -1090,12 +1099,16 @@ export async function openPersonEditor({ personId, onSaved }) {
     e.preventDefault();
 
     const fd = new FormData(form);
+    const flagNonSocioRaw = String(fd.get('flag_non_socio') || '').trim();
+    const flagNonSocioBool = flagNonSocioRaw === '' ? null : flagNonSocioRaw === 'true';
+
     const payloadPerson = {
       ...(isEdit ? { id: personId } : {}),
       display_name: String(fd.get('display_name') || '').trim(),
       nr_quota: numOrNull(fd.get('nr_quota')),
       corso: String(fd.get('corso') || ''),
       ruolo: String(fd.get('ruolo') || 'ALLIEVO'),
+      flag_non_socio: flagNonSocioBool,
     };
 
     if (!payloadPerson.display_name) {

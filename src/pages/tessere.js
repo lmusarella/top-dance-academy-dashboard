@@ -45,6 +45,13 @@ export async function renderTessere() {
               <option value="ASSENTE">Modulo Safeguarding: ❌ Assente</option>
             </select>
           </div>
+          <div class="cert-filter">
+            <select id="tessereNonSocioFilter">
+              <option value="ALL">Flag non socio: Tutti</option>
+              <option value="TRUE">Flag non socio: ✅ Sì</option>
+              <option value="FALSE">Flag non socio: ❌ No</option>
+            </select>
+          </div>
         </div>
         <div class="tessere-toggle-row">
           <button class="chip-btn" id="tessereMissingToggle" type="button" aria-pressed="false">
@@ -84,6 +91,7 @@ export async function renderTessere() {
               <th>Note</th>
           
               <th>Modulo Safeguarding</th>
+              <th>Flag non socio</th>
               <th class="right">Azioni</th>
             </tr>
           </thead>
@@ -105,6 +113,7 @@ export async function bindTessereEvents() {
   const qInput = document.querySelector('#tessereQ');
   const roleFilter = document.querySelector('#tessereRoleFilter');
   const safeguardingFilter = document.querySelector('#tessereSafeguardingFilter');
+  const nonSocioFilter = document.querySelector('#tessereNonSocioFilter');
   const shownEl = document.querySelector('#tessereShown');
   const totalEl = document.querySelector('#tessereTotal');
   const missingToggle = document.querySelector('#tessereMissingToggle');
@@ -123,6 +132,7 @@ export async function bindTessereEvents() {
   let q = '';
   let role = 'ALL';
   let safeguarding = 'ALL';
+  let flagNonSocio = 'ALL';
   let withoutCard = false;
   let excludeCantinmusicaOnly = false;
   let loading = false;
@@ -156,6 +166,7 @@ export async function bindTessereEvents() {
         <td>${esc(r.nr_tessera ?? '—')}</td>
         <td>${esc(!r.note || r.note == '' ? '—' : r.note)}</td>
         <td>${esc(r.safeguarding ? '🟢': '❌')}</td>
+        <td>${esc(r.flag_non_socio ? '✅': '❌')}</td>
         <td class="right">
           <button class="icon-btn sm" data-edit="${r.person_id ?? r.id ?? ''}" title="Modifica">✎</button>
         </td>
@@ -259,6 +270,7 @@ export async function bindTessereEvents() {
         offset,
         ruolo: role,
         safeguarding,
+        flagNonSocio,
         withoutCard,
         excludeCantinmusicaOnly
       });
@@ -285,8 +297,8 @@ export async function bindTessereEvents() {
   async function resetAndLoad() {
     body.innerHTML = '';
     try {
-      totalAll = await countPeople({ q: '', ruolo: 'ALL', safeguarding: 'ALL' });
-      totalFiltered = await countPeople({ q, ruolo: role, safeguarding, withoutCard, excludeCantinmusicaOnly });
+      totalAll = await countPeople({ q: '', ruolo: 'ALL', safeguarding: 'ALL', flagNonSocio: 'ALL' });
+      totalFiltered = await countPeople({ q, ruolo: role, safeguarding, flagNonSocio, withoutCard, excludeCantinmusicaOnly });
       shown = totalFiltered;
       updateCount(totalAll);
       updatePagination();
@@ -319,6 +331,11 @@ export async function bindTessereEvents() {
   });
   safeguardingFilter?.addEventListener('change', async () => {
     safeguarding = safeguardingFilter.value || 'ALL';
+    currentPage = 1;
+    await resetAndLoad();
+  });
+  nonSocioFilter?.addEventListener('change', async () => {
+    flagNonSocio = nonSocioFilter.value || 'ALL';
     currentPage = 1;
     await resetAndLoad();
   });
@@ -372,7 +389,7 @@ export async function bindTessereEvents() {
   btnExport?.addEventListener('click', async () => {
     try {
       const all = await fetchAllPaged(({ limit, offset }) =>
-        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding, withoutCard, excludeCantinmusicaOnly })
+        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding, flagNonSocio, withoutCard, excludeCantinmusicaOnly })
       );
 
       const EXPORT_COLS = [
@@ -383,6 +400,7 @@ export async function bindTessereEvents() {
         'ruolo',
         'codice_fiscale',
         'safeguarding',
+        'flag_non_socio',
         'note',
         'telefono',
         'email',
