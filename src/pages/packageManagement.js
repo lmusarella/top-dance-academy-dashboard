@@ -43,29 +43,45 @@ function cardStatusLabel(status) {
   return status || '—';
 }
 
+
+function updateSummaryCounters(detailsEl, cards) {
+  const counts = {
+    total: cards.length,
+    available: cards.filter((card) => card.status === 'available').length,
+    assigned: cards.filter((card) => card.status === 'assigned').length,
+    blocked: cards.filter((card) => card.status === 'blocked').length,
+    used: cards.filter((card) => card.status === 'used').length,
+  };
+
+  detailsEl.querySelector('[data-count="total"]')?.replaceChildren(`Totale: ${counts.total}`);
+  detailsEl.querySelector('[data-count="available"]')?.replaceChildren(`Disponibili: ${counts.available}`);
+  detailsEl.querySelector('[data-count="assigned"]')?.replaceChildren(`Assegnate: ${counts.assigned}`);
+  detailsEl.querySelector('[data-count="blocked"]')?.replaceChildren(`Bloccate: ${counts.blocked}`);
+  detailsEl.querySelector('[data-count="used"]')?.replaceChildren(`Usate: ${counts.used}`);
+}
+
 function packageAccordionItem(item) {
   return `
     <details class="acc-item" data-package-id="${item.id}">
       <summary class="acc-sum">
-        <div>
+        <div class="acc-left">
           <div class="acc-title">#${item.package_order ?? '—'} · ${esc(item.code ?? '—')} · ${esc(item.name ?? 'Senza nome')}</div>
           <div class="acc-sub muted">
             <span>Intervallo: ${item.start_number ?? '—'} - ${item.end_number ?? '—'}</span>
-            <span>Totale: ${item.total_cards ?? 0}</span>
-            <span>Disponibili: ${item.available_cards ?? 0}</span>
-            <span>Assegnate: ${item.assigned_cards ?? 0}</span>
-            <span>Bloccate: ${item.blocked_cards ?? 0}</span>
-            <span>Usate: ${item.used_cards ?? 0}</span>
+            <span data-count="total">Totale: ${item.total_cards ?? 0}</span>
+            <span data-count="available">Disponibili: ${item.available_cards ?? 0}</span>
+            <span data-count="assigned">Assegnate: ${item.assigned_cards ?? 0}</span>
+            <span data-count="blocked">Bloccate: ${item.blocked_cards ?? 0}</span>
+            <span data-count="used">Usate: ${item.used_cards ?? 0}</span>
           </div>
         </div>
-        
+        <div class="acc-right">
+          <button class="icon-btn sm" type="button" data-action="add-cards" title="Aggiungi tessere" aria-label="Aggiungi tessere">+</button>
+          <button class="icon-btn sm" type="button" data-action="edit-package" title="Modifica pacchetto" aria-label="Modifica pacchetto">✏️</button>
+          <button class="icon-btn sm danger" type="button" data-action="delete-package" title="Elimina pacchetto" aria-label="Elimina pacchetto">🗑️</button>
+        </div>
       </summary>
       <div class="acc-body">
-        <div class="row" style="margin-bottom:10px; gap:8px; flex-wrap:wrap;">
-          <button class="btn ghost" type="button" data-action="add-cards">Aggiungi tessere</button>
-          <button class="btn ghost" type="button" data-action="edit-package">Modifica pacchetto</button>
-          <button class="btn danger" type="button" data-action="delete-package">Elimina pacchetto</button>
-        </div>
         <div class="table-wrap">
           <table class="table compact">
             <thead>
@@ -150,12 +166,14 @@ export async function bindPackageManagementEvents() {
       const cards = await listCardsByPackage(packageId);
       if (!cards.length) {
         cardsBodyEl.innerHTML = '<tr><td colspan="3" class="muted">Nessuna tessera nel pacchetto.</td></tr>';
-        return;
+        return [];
       }
       cardsBodyEl.innerHTML = cards.map(cardRow).join('');
+      return cards;
     } catch (err) {
       cardsBodyEl.innerHTML = '<tr><td colspan="3" class="muted">Errore caricamento tessere.</td></tr>';
       toast(normalizeErr(err), 'error');
+      return null;
     }
   }
 
@@ -403,7 +421,8 @@ export async function bindPackageManagementEvents() {
     const packageId = Number(details.getAttribute('data-package-id'));
     const cardsBodyEl = details.querySelector('[data-cards-body]');
     if (!packageId || !cardsBodyEl) return;
-    await loadCardsForPackage(packageId, cardsBodyEl);
+    const cards = await loadCardsForPackage(packageId, cardsBodyEl);
+    if (cards) updateSummaryCounters(details, cards);
   }, true);
 
   accordion.addEventListener('click', async (event) => {
@@ -430,8 +449,8 @@ export async function bindPackageManagementEvents() {
         }
 
         await updateCardStatus(cardId, nextStatus);
-        await loadCardsForPackage(packageId, cardsBodyEl);
-        await loadPackages();
+        const cards = await loadCardsForPackage(packageId, cardsBodyEl);
+        if (cards) updateSummaryCounters(details, cards);
       } catch (err) {
         toast(normalizeErr(err), 'error');
       }
@@ -440,6 +459,9 @@ export async function bindPackageManagementEvents() {
 
     const packageActionBtn = target.closest('[data-action]');
     if (!packageActionBtn) return;
+    event.preventDefault();
+    event.stopPropagation();
+
     const action = packageActionBtn.getAttribute('data-action');
     const details = packageActionBtn.closest('[data-package-id]');
     const packageId = Number(details?.getAttribute('data-package-id'));
