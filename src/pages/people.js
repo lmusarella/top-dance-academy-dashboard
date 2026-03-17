@@ -1007,7 +1007,7 @@ export async function openPersonEditor({ personId, onSaved }) {
   `;
 
   const { close } = openModal({
-    title: isEdit ? 'Modifica scheda' : 'Nuovo scheda',
+    title: isEdit ? 'Modifica scheda' : 'Nuova scheda',
     content: form
   });
 

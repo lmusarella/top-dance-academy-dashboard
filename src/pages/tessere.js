@@ -36,7 +36,6 @@ export async function renderTessere() {
 
       <div class="panel-top">
         <div class="search-row">
-          <div class="meta tessere-results-meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
           <div class="search">
             <input id="tessereQ" placeholder="Cerca per nome, numero quota o numero tessera…" />
           </div>
@@ -69,6 +68,7 @@ export async function renderTessere() {
           <button class="chip-btn" id="tessereExcludeCantinmusicaToggle" type="button" aria-pressed="false">
             Escludi cantinmusica
           </button>
+           <div class="meta tessere-results-meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
         </div>
       </div>
 
