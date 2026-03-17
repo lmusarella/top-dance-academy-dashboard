@@ -921,6 +921,10 @@ export async function openPersonEditor({ personId, onSaved }) {
         <span>Nr tessera</span>
         <input name="nr_tessera" placeholder="..."/>
       </label>
+       <label class="field size-md">
+        <span>Data tessera</span>
+        <input name="data_tessera" type="date"/>
+      </label>
     </div>
 
     <div class="form-row cols-1">
@@ -1075,6 +1079,7 @@ export async function openPersonEditor({ personId, onSaved }) {
       safeguarding: full.membership?.safeguarding === null || full.membership?.safeguarding === undefined ? '' : String(full.membership?.safeguarding),
       flag_non_socio: full.membership?.flag_non_socio === null || full.membership?.flag_non_socio === undefined ? '' : String(full.membership?.flag_non_socio),
       nr_tessera: full.membership?.nr_tessera ?? '',
+      data_tessera: full.membership?.data_tessera ?? '',
       note: full.membership?.note ?? '',
       scadenza: full.certificate?.scadenza ?? '',
       type: full.certificate?.type ?? '',
@@ -1263,6 +1268,7 @@ export async function openPersonEditor({ personId, onSaved }) {
           codice_fiscale: strOrNull(fd.get('codice_fiscale')),
           data_nascita: strOrNull(fd.get('data_nascita')),
           luogo_nascita: strOrNull(fd.get('luogo_nascita')),
+          data_tessera: strOrNull(fd.get('data_tessera')),
           safeguarding: safeguardingBool,
           note: strOrNull(fd.get('note')),
           flag_non_socio: flagNonSocioBool,
