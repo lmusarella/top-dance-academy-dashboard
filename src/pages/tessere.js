@@ -94,7 +94,7 @@ export async function renderTessere() {
           <thead>
             <tr>
               <th>Quota</th>
-              <th>Socio</th>
+              <th>Nome</th>
               <th>Dati</th>
               <th>Tessera</th>
               <th>Note</th>
