@@ -62,9 +62,6 @@ export async function renderTessere() {
           </div>
         </div>
         <div class="tessere-toggle-row">
-          <button class="chip-btn" id="tessereSortToggle" type="button" aria-pressed="false">
-            Ordina per data tessera (più recente)
-          </button>
           <button class="chip-btn" id="tessereMissingToggle" type="button" aria-pressed="false">
             Solo record senza tessera
           </button>
@@ -78,6 +75,9 @@ export async function renderTessere() {
       <div class="table-controls">
         <div class="pagination">
           <button class="btn ghost" id="tesserePrev">←</button>
+          <button class="btn ghost" id="tessereSortToggle" type="button" aria-pressed="false">
+            Ordina per data tessera (più recente)
+          </button>
           <div class="page-info" id="tesserePageInfo">Pagina 1 / 1</div>
           <button class="btn ghost" id="tessereNext">→</button>
         </div>
@@ -203,6 +203,10 @@ export async function bindTessereEvents() {
               <span>Nr tessera</span>
               <input name="nr_tessera" placeholder="..." />
             </label>
+            <label class="field size-md">
+              <span>Data tessera</span>
+              <input name="data_tessera" type="date" />
+            </label>
             <label class="field">
               <span>Codice fiscale</span>
               <input name="codice_fiscale" placeholder="..." />
@@ -242,6 +246,7 @@ export async function bindTessereEvents() {
 
     fill({
       nr_tessera: row.nr_tessera ?? '',
+      data_tessera: row.data_tessera ?? '',
       codice_fiscale: row.codice_fiscale ?? '',
       safeguarding: row.safeguarding ?? '',
       note: row.note ?? '',
@@ -259,6 +264,7 @@ export async function bindTessereEvents() {
         person_id: row.person_id ?? row.id,
         nr_tessera: String(fd.get('nr_tessera') || '').trim() || null,
         note: String(fd.get('note') || '').trim() || null,
+        data_tessera: String(fd.get('data_tessera') || '').trim() || null,
         codice_fiscale: String(fd.get('codice_fiscale') || '').trim() || null,
         safeguarding: safeguardingBool,
       };
@@ -366,7 +372,7 @@ export async function bindTessereEvents() {
     sortToggle.classList.toggle('active', isCardDateSort);
     sortToggle.setAttribute('aria-pressed', isCardDateSort ? 'true' : 'false');
     sortToggle.textContent = isCardDateSort
-      ? 'Ordine attivo: data tessera (più recente → più vecchia)'
+      ? 'Ordine: data tessera (più recente → più vecchia)'
       : 'Ordina per data tessera (più recente)';
     currentPage = 1;
     await resetAndLoad();
