@@ -27,7 +27,7 @@ export async function renderTessere() {
       <div class="panel-head">
         <div>
           <div class="h1">Tessere</div>
-          <div class="h2">Ordinate per numero quota</div>
+          <div class="h2">Ordinate per nome (A-Z)</div>
         </div>
         <div class="panel-actions">
           <button class="btn ghost" id="btnExportTessere">⬇ Export</button>
@@ -62,6 +62,9 @@ export async function renderTessere() {
           </div>
         </div>
         <div class="tessere-toggle-row">
+          <button class="chip-btn" id="tessereSortToggle" type="button" aria-pressed="false">
+            Ordina per data tessera (più recente)
+          </button>
           <button class="chip-btn" id="tessereMissingToggle" type="button" aria-pressed="false">
             Solo record senza tessera
           </button>
@@ -125,6 +128,7 @@ export async function bindTessereEvents() {
   const flagSocioFilter = document.querySelector('#tessereFlagSocioFilter');
   const shownEl = document.querySelector('#tessereShown');
   const totalEl = document.querySelector('#tessereTotal');
+  const sortToggle = document.querySelector('#tessereSortToggle');
   const missingToggle = document.querySelector('#tessereMissingToggle');
   const excludeCantinmusicaToggle = document.querySelector('#tessereExcludeCantinmusicaToggle');
   const btnExport = document.querySelector('#btnExportTessere');
@@ -144,6 +148,7 @@ export async function bindTessereEvents() {
   let flagNonSocio = 'ALL';
   let withoutCard = false;
   let excludeCantinmusicaOnly = false;
+  let sortBy = 'NAME';
   let loading = false;
   let cacheRows = [];
   let shown = 0;
@@ -177,7 +182,7 @@ export async function bindTessereEvents() {
           <div class="meta"><b>Data nascita:</b> ${formatDateIt(r.data_nascita)}</div>
           <div class="meta"><b>Luogo nascita:</b> ${esc(r.luogo_nascita ?? '—')}</div>
         </td>
-        <td>${esc(r.nr_tessera ?? '—')}</td>
+        <td><div><b>${esc(r.nr_tessera ?? '—')}</b></div><div class="meta tessera-date">${formatDateIt(r.data_tessera)}</div></td>
         <td>${esc(!r.note || r.note == '' ? '—' : r.note)}</td>
         <td>${esc(r.safeguarding ? '🟢': '❌')}</td>
         <td>${esc(r.flag_non_socio === true ? '❌' : '🟢')}</td>
@@ -286,7 +291,8 @@ export async function bindTessereEvents() {
         safeguarding,
         flagNonSocio,
         withoutCard,
-        excludeCantinmusicaOnly
+        excludeCantinmusicaOnly,
+        sortBy
       });
       if (rows.length === 0) {
         body.innerHTML = '';
@@ -354,6 +360,17 @@ export async function bindTessereEvents() {
     currentPage = 1;
     await resetAndLoad();
   });
+  sortToggle?.addEventListener('click', async () => {
+    sortBy = sortBy === 'NAME' ? 'CARD_DATE' : 'NAME';
+    const isCardDateSort = sortBy === 'CARD_DATE';
+    sortToggle.classList.toggle('active', isCardDateSort);
+    sortToggle.setAttribute('aria-pressed', isCardDateSort ? 'true' : 'false');
+    sortToggle.textContent = isCardDateSort
+      ? 'Ordine attivo: data tessera (più recente → più vecchia)'
+      : 'Ordina per data tessera (più recente)';
+    currentPage = 1;
+    await resetAndLoad();
+  });
   missingToggle?.addEventListener('click', async () => {
     withoutCard = !withoutCard;
     missingToggle.classList.toggle('active', withoutCard);
@@ -404,7 +421,7 @@ export async function bindTessereEvents() {
   btnExport?.addEventListener('click', async () => {
     try {
       const all = await fetchAllPaged(({ limit, offset }) =>
-        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding, flagNonSocio, withoutCard, excludeCantinmusicaOnly })
+        listPeopleByQuotaPaged({ q, limit, offset, ruolo: role, safeguarding, flagNonSocio, withoutCard, excludeCantinmusicaOnly, sortBy })
       );
 
       const EXPORT_COLS = [

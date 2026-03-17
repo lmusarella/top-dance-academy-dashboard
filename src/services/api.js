@@ -200,13 +200,22 @@ export async function listPeopleByQuotaPaged({
   safeguarding = 'ALL',
   flagNonSocio = 'ALL',
   withoutCard = false,
-  excludeCantinmusicaOnly = false
+  excludeCantinmusicaOnly = false,
+  sortBy = 'NAME'
 } = {}) {
   let query = supabase
     .from('v_people_search')
-    .select('*')
-    .order('nr_quota', { ascending: true, nullsFirst: false })
-    .range(offset, offset + limit - 1);
+    .select('*');
+
+  if (sortBy === 'CARD_DATE') {
+    query = query
+      .order('data_tessera', { ascending: false, nullsFirst: false })
+      .order('display_name', { ascending: true });
+  } else {
+    query = query.order('display_name', { ascending: true });
+  }
+
+  query = query.range(offset, offset + limit - 1);
 
   if (ruolo && ruolo !== 'ALL') {
     query = query.eq('ruolo', ruolo);
