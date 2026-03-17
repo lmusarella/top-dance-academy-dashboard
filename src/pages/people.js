@@ -201,7 +201,7 @@ export async function renderPeople() {
         <table class="table">
           <thead>
             <tr>
-              <th>Socio</th>           
+              <th>Nome</th>           
               <th>Certificato</th>
               <th>Contatti</th>
               <th>Corsi</th>          
@@ -804,7 +804,7 @@ export async function bindPeopleEvents() {
     const delId = btn.getAttribute('data-del');
     if (delId) {
       const ok = await confirmDialog({
-        title: 'Elimina socio',
+        title: 'Elimina',
         message: 'Vuoi eliminare questa persona?',
         details: 'L’operazione rimuove anche contatti, tessera, certificato e corsi collegati.',
         confirmText: 'Elimina',
@@ -1003,7 +1003,7 @@ export async function openPersonEditor({ personId, onSaved }) {
   `;
 
   const { close } = openModal({
-    title: isEdit ? 'Modifica socio' : 'Nuovo socio',
+    title: isEdit ? 'Modifica scheda' : 'Nuovo scheda',
     content: form
   });
 
@@ -1204,7 +1204,7 @@ export async function openPersonEditor({ personId, onSaved }) {
   if (delBtn) {
     delBtn.addEventListener('click', async () => {
       const ok = await confirmDialog({
-        title: 'Elimina socio',
+        title: 'Elimina',
         message: 'Vuoi eliminare questa persona?',
         details: 'L’operazione rimuove anche contatti, tessera, certificato e corsi collegati.',
         confirmText: 'Elimina',
