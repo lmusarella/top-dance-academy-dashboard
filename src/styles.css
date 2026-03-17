@@ -815,6 +815,11 @@ select option{
   margin-top: 2px;
 }
 
+.tessere-results-meta{
+  margin-top: 0;
+  margin-right: 8px;
+}
+
 
 /* mobile */
 @media (max-width: 640px){

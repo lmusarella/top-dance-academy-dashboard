@@ -36,6 +36,7 @@ export async function renderTessere() {
 
       <div class="panel-top">
         <div class="search-row">
+          <div class="meta tessere-results-meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
           <div class="search">
             <input id="tessereQ" placeholder="Cerca per nome, numero quota o numero tessera…" />
           </div>
@@ -69,18 +70,17 @@ export async function renderTessere() {
             Escludi cantinmusica
           </button>
         </div>
-        <div class="meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
       </div>
 
       <div class="table-controls">
         <div class="pagination">
           <button class="btn ghost" id="tesserePrev">←</button>
-          <button class="btn ghost" id="tessereSortToggle" type="button" aria-pressed="false">
-            Ordina per data tessera (più recente)
-          </button>
           <div class="page-info" id="tesserePageInfo">Pagina 1 / 1</div>
           <button class="btn ghost" id="tessereNext">→</button>
         </div>
+        <button class="btn ghost" id="tessereSortToggle" type="button" aria-pressed="false">
+          Ordina per data tessera (più recente)
+        </button>
         <div class="page-size">
           <span>Risultati per pagina</span>
           <select id="tesserePageSize">
