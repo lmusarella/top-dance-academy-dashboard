@@ -812,12 +812,14 @@ select option{
 .tessere-toggle-row{
   width: 100%;
   display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 2px;
 }
 
 .tessere-results-meta{
   margin-top: 0;
-  margin-right: 8px;
+  margin-left: auto;
 }
 
 
