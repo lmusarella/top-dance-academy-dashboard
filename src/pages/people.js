@@ -1007,7 +1007,7 @@ export async function openPersonEditor({ personId, onSaved }) {
   `;
 
   const { close } = openModal({
-    title: isEdit ? 'Modifica scheda' : 'Nuovo scheda',
+    title: isEdit ? 'Modifica scheda' : 'Nuova scheda',
     content: form
   });
 
@@ -1185,6 +1185,17 @@ export async function openPersonEditor({ personId, onSaved }) {
 
   form.querySelector('[data-cancel]').addEventListener('click', close);
 
+  const quotaField = form.querySelector('[name="nr_quota"]');
+  const flagSocioField = form.querySelector('[name="flag_non_socio"]');
+  const syncFlagSocioFromQuota = () => {
+    if (!flagSocioField) return;
+    const hasQuota = String(quotaField?.value ?? '').trim() !== '';
+    flagSocioField.value = hasQuota ? 'false' : 'true';
+  };
+  quotaField?.addEventListener('input', syncFlagSocioFromQuota);
+  quotaField?.addEventListener('change', syncFlagSocioFromQuota);
+  syncFlagSocioFromQuota();
+
   const cfField = form.querySelector('[name="codice_fiscale"]');
   const birthDateField = form.querySelector('[name="data_nascita"]');
   const birthPlaceField = form.querySelector('[name="luogo_nascita"]');
@@ -1231,14 +1242,15 @@ export async function openPersonEditor({ personId, onSaved }) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    syncFlagSocioFromQuota();
     const fd = new FormData(form);
-    const flagSocioRaw = String(fd.get('flag_non_socio') || '').trim();
-    const flagNonSocioBool = flagSocioRaw === '' ? null : flagSocioRaw === 'true';
+    const nrQuotaValue = numOrNull(fd.get('nr_quota'));
+    const flagNonSocioBool = nrQuotaValue === null;
 
     const payloadPerson = {
       ...(isEdit ? { id: personId } : {}),
       display_name: String(fd.get('display_name') || '').trim(),
-      nr_quota: numOrNull(fd.get('nr_quota')),
+      nr_quota: nrQuotaValue,
       corso: String(fd.get('corso') || ''),
       ruolo: String(fd.get('ruolo') || 'ALLIEVO')
     };
