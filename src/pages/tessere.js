@@ -68,7 +68,7 @@ export async function renderTessere() {
           <button class="chip-btn" id="tessereExcludeCantinmusicaToggle" type="button" aria-pressed="false">
             Escludi cantinmusica
           </button>
-           <div class="meta tessere-results-meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
+          <div class="meta tessere-results-meta">Risultati: <b id="tessereShown">0</b> / <b id="tessereTotal">0</b></div>
         </div>
       </div>
 
@@ -79,7 +79,7 @@ export async function renderTessere() {
           <button class="btn ghost" id="tessereNext">→</button>
         </div>
         <button class="btn ghost" id="tessereSortToggle" type="button" aria-pressed="false">
-          Ordina per data tessera (più recente)
+          Per data
         </button>
         <div class="page-size">
           <span>Risultati per pagina</span>
@@ -371,9 +371,7 @@ export async function bindTessereEvents() {
     const isCardDateSort = sortBy === 'CARD_DATE';
     sortToggle.classList.toggle('active', isCardDateSort);
     sortToggle.setAttribute('aria-pressed', isCardDateSort ? 'true' : 'false');
-    sortToggle.textContent = isCardDateSort
-      ? 'Ordine: data tessera (più recente → più vecchia)'
-      : 'Ordina per data tessera (più recente)';
+    sortToggle.textContent = isCardDateSort ? 'Alfabetico' : 'Per data';
     currentPage = 1;
     await resetAndLoad();
   });
