@@ -381,6 +381,22 @@ export async function updateCardStatus(cardId, status) {
   if (error) throw error;
 }
 
+export async function assignCardByNumberIfAvailable(cardNumberRaw) {
+  const cardNumber = Number(cardNumberRaw);
+  if (!Number.isFinite(cardNumber)) return false;
+
+  const { data, error } = await supabase
+    .from('cards')
+    .update({ status: 'assigned' })
+    .eq('card_number', cardNumber)
+    .eq('status', 'available')
+    .select('id')
+    .limit(1);
+
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
 export async function addCardsToPackage({ packageId, startNumber, endNumber, autoAssign = true }) {
   const cardsToInsert = [];
   for (let cardNumber = startNumber; cardNumber <= endNumber; cardNumber += 1) {

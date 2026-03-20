@@ -1,4 +1,4 @@
-import { listPeopleByQuotaPaged, countPeople, fetchAllPaged, upsertContact, upsertMembership } from '../services/api.js';
+import { listPeopleByQuotaPaged, countPeople, fetchAllPaged, upsertContact, upsertMembership, assignCardByNumberIfAvailable } from '../services/api.js';
 import { toast } from '../ui/toast.js';
 import { exportToXlsx } from '../ui/exportExcel.js';
 import { openModal } from '../ui/modal.js';
@@ -273,6 +273,9 @@ export async function bindTessereEvents() {
         await Promise.all([
           upsertMembership(payloadMembership.person_id, payloadMembership),
         ]);
+        if (payloadMembership.nr_tessera) {
+          await assignCardByNumberIfAvailable(payloadMembership.nr_tessera);
+        }
         toast('Aggiornato', 'ok');
         close();
         await resetAndLoad();

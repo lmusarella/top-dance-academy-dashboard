@@ -226,8 +226,8 @@ export async function bindPackageManagementEvents() {
       <label class="field">
         <span>Assegna automaticamente le nuove tessere</span>
         <select name="auto_assign">
-          <option value="true" selected>Sì</option>
-          <option value="false">No</option>
+          <option value="false" selected>No</option>
+          <option value="true">Sì</option>
         </select>
       </label>
 
@@ -255,7 +255,7 @@ export async function bindPackageManagementEvents() {
       const nameRaw = String(fd.get('name') || '').trim();
       const startNumber = Number(String(fd.get('start_number') || '').trim());
       const endNumber = Number(String(fd.get('end_number') || '').trim());
-      const autoAssign = String(fd.get('auto_assign') || 'true') === 'true';
+      const autoAssign = String(fd.get('auto_assign') || 'false') === 'true';
 
       if (!code) {
         toast('Il codice è obbligatorio.', 'error');
