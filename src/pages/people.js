@@ -1,7 +1,7 @@
 import {
   getPersonFull,
   upsertPerson, upsertContact, upsertMembership, upsertCertificate,
-  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota, getFirstAvailableCardNumber, searchPeople
+  deletePerson, listPeoplePaged, countPeople, listCourses, getPersonCourseIds, setPersonCourses, getMaxQuota, getFirstAvailableCardNumber, searchPeople, assignCardByNumberIfAvailable
 } from '../services/api.js';
 
 import { toast } from '../ui/toast.js';
@@ -1291,6 +1291,11 @@ export async function openPersonEditor({ personId, onSaved }) {
           fonte: strOrNull(fd.get('fonte')),
         }),
       ]);
+
+      const cardNumber = strOrNull(fd.get('nr_tessera'));
+      if (cardNumber) {
+        await assignCardByNumberIfAvailable(cardNumber);
+      }
       // sync corsi
       const selectedIds = JSON.parse(String(fd.get('course_ids') || '[]'));
       await setPersonCourses(id, selectedIds);
